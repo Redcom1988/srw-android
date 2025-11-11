@@ -1,4 +1,4 @@
-package com.example.srw.ui.theme
+package com.example.srw.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
