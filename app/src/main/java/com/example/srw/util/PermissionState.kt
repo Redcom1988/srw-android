@@ -80,7 +80,7 @@ fun rememberPermissionState(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        DisposableEffectScope.onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     return remember(permission) {
@@ -108,7 +108,7 @@ fun rememberMultiplePermissionsState(
                     context,
                     permission
                 ) == PackageManager.PERMISSION_GRANTED
-                SnapshotStateMap.put(permission, granted)
+                this[permission] = granted
             }
         }
     }
@@ -117,7 +117,7 @@ fun rememberMultiplePermissionsState(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultMap ->
         resultMap.forEach { (permission, granted) ->
-            permissionResults[permission] set granted
+            permissionResults[permission] = granted
         }
     }
 
@@ -130,7 +130,7 @@ fun rememberMultiplePermissionsState(
                             context,
                             permission
                         ) == PackageManager.PERMISSION_GRANTED
-                        permissionResults[permission] set granted
+                        permissionResults[permission] = granted
                     }
                 }
 
@@ -138,7 +138,7 @@ fun rememberMultiplePermissionsState(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        DisposableEffectScope.onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     return remember(permissions) {
@@ -170,7 +170,7 @@ fun rememberBackgroundLocationPermissionState(): PermissionState {
             isGranted = mutableStateOf(false),
             requestPermission = {
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    Intent.setData = Uri.fromParts("package", applicationContext.packageName, null)
+                    data = Uri.fromParts("package", applicationContext.packageName, null)
                 }
                 activity.startActivity(intent)
             }
@@ -182,19 +182,17 @@ fun rememberBackgroundLocationPermissionState(): PermissionState {
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
                     backgroundLocationPermission.isGranted.value =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            ContextCompat.checkSelfPermission(
-                                applicationContext,
-                                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED
-                        } else true
+                        ContextCompat.checkSelfPermission(
+                            applicationContext,
+                            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
                 }
 
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        DisposableEffectScope.onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     return backgroundLocationPermission

@@ -67,12 +67,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.sample
 
-const val STICKY_HEADER_KEY_PREFIX = "sticky:"
+const val GRID_STICKY_HEADER_KEY_PREFIX = "sticky:"
 
 /**
  * Draws horizontal scrollbar to a LazyGrid.
  *
- * Set key with [STICKY_HEADER_KEY_PREFIX] prefix to any sticky header item in the grid.
+ * Set key with [GRID_STICKY_HEADER_KEY_PREFIX] prefix to any sticky header item in the grid.
  */
 @Composable
 fun Modifier.drawHorizontalScrollbar(
@@ -85,7 +85,7 @@ fun Modifier.drawHorizontalScrollbar(
 /**
  * Draws vertical scrollbar to a LazyGrid.
  *
- * Set key with [STICKY_HEADER_KEY_PREFIX] prefix to any sticky header item in the grid.
+ * Set key with [GRID_STICKY_HEADER_KEY_PREFIX] prefix to any sticky header item in the grid.
  */
 @Composable
 fun Modifier.drawVerticalScrollbar(
@@ -132,7 +132,7 @@ private fun Modifier.drawScrollbar(
         0f
     } else {
         items
-            .fastFirstOrNull { (it.key as? String)?.startsWith(STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
+            .fastFirstOrNull { (it.key as? String)?.startsWith(GRID_STICKY_HEADER_KEY_PREFIX)?.not() ?: true }
             ?.run {
                 val itemOffset = if (orientation == Orientation.Horizontal) {
                     offset.x
