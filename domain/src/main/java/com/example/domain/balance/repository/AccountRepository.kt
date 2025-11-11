@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AccountRepository {
 
-    fun subscribe(accountId: String): Flow<Account>
+    fun subscribe(accountId: String): Flow<Account?>
 
     suspend fun deleteAll()
 

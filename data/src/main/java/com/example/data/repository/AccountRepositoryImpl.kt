@@ -19,9 +19,9 @@ class AccountRepositoryImpl(
 
     private val accountDao: AccountDao = database.accountDao()
 
-    override fun subscribe(accountId: String): Flow<Account> {
+    override fun subscribe(accountId: String): Flow<Account?> {
         return accountDao.subscribeSingle(accountId)
-            .map { it.toDomain() }
+            .map { it?.toDomain() }
             .distinctUntilChanged()
             .flowOn(Dispatchers.IO)
     }
