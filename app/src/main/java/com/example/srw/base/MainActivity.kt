@@ -20,6 +20,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
 import com.example.domain.preference.ApplicationPreference
+import com.example.srw.screens.homescreen.HomeScreen
 import com.example.srw.screens.testscreen.TestScreen
 import com.example.srw.theme.AppTheme
 import kotlinx.coroutines.channels.awaitClose
@@ -84,7 +85,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun handlePreDraw() {
         // Handle pre draw here (e.g. Splash Screen, fetch data, etc)
-        initialScreen = TestScreen
+        initialScreen = HomeScreen
 
         isReady = true
     }
