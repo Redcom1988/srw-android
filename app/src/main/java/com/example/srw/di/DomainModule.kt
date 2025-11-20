@@ -5,5 +5,5 @@ import com.example.domain.balance.repository.AccountRepository
 import org.koin.dsl.module
 
 val domainModule = module {
-    single<AccountRepository> { AccountRepositoryImpl(get(), get()) }
+    single<AccountRepository> { AccountRepositoryImpl(get()) }
 }

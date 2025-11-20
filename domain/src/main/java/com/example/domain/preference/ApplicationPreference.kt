@@ -12,6 +12,16 @@ class ApplicationPreference(
         defaultValue = false
     )
 
+    fun accessToken() = preferenceStore.getString(
+        key = "access_token",
+        defaultValue = ""
+    )
+
+    fun refreshToken() = preferenceStore.getString(
+        key = "refresh_token",
+        defaultValue = ""
+    )
+
     fun baseUrl() = preferenceStore.getString(
         key = "api_base_url",
         defaultValue = ""
