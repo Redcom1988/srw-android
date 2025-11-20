@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.srw"
+    namespace = "com.redcom1988.srw"
     compileSdk = 36
 
     defaultConfig {
