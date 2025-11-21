@@ -48,7 +48,6 @@ object HomeScreen : Screen {
     @Suppress("unused")
     private fun readResolve(): Any = HomeScreen
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
@@ -65,7 +64,7 @@ private fun HomeScreenContent(
     onClickLedger: () -> Unit = {},
     onClickViewAll: () -> Unit = {},
     onClickUpload: () -> Unit = {},
-//    submissions: List<Submission>,
+//    recentSubmissions: List<Submission>,
 ) {
     Scaffold(
         topBar = {

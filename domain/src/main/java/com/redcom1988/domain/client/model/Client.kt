@@ -1,11 +1,10 @@
-package com.redcom1988.domain.balance.model
+package com.redcom1988.domain.client.model
 
 import java.time.LocalDateTime
 
-data class Account(
-    val id: String,
+data class Client(
+    val id: Int,
     val name: String,
-    val balance: Double,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
 )

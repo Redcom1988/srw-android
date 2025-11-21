@@ -1,26 +1,24 @@
 package com.redcom1988.data.repository
 
 import com.redcom1988.data.remote.SRWApi
-import com.redcom1988.domain.balance.model.Account
-import com.redcom1988.domain.balance.repository.AccountRepository
+import com.redcom1988.domain.client.model.Client
+import com.redcom1988.domain.client.repository.ClientRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 
-class AccountRepositoryImpl(
-    @Suppress("unused") // Will be used when API is implemented
+class ClientRepositoryImpl(
     private val api: SRWApi
-): AccountRepository {
+): ClientRepository {
 
-    // Fetch data from server only - no local database
-    override fun subscribe(accountId: String): Flow<Account?> {
+    override fun subscribe(clientId: Int): Flow<Client?> {
         return flow {
             while (true) {
                 try {
                     // TODO: Implement actual API call to fetch account data
-                    // val account = api.getAccount(accountId)
+                    // val account = api.getAccount(clientId)
                     // emit(account)
                     emit(null)
                 } catch (_: Exception) {
@@ -30,10 +28,4 @@ class AccountRepositoryImpl(
             }
         }.flowOn(Dispatchers.IO)
     }
-
-    override suspend fun deleteAll() {
-        // No local data to delete - this is a no-op now
-        // Could be used to clear any in-memory cache if needed
-    }
-
 }

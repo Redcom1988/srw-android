@@ -1,7 +1,11 @@
 package com.redcom1988.srw.screens.homescreen
 
-class HomeScreenModel {
+import cafe.adriel.voyager.core.model.ScreenModel
 
+class HomeScreenModel(
 
+) : ScreenModel {
+
+    
 
 }

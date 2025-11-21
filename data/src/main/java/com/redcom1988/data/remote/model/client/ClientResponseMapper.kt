@@ -1,15 +1,14 @@
-package com.redcom1988.data.remote.model.balance
+package com.redcom1988.data.remote.model.client
 
-import com.redcom1988.domain.balance.model.Account
+import com.redcom1988.domain.client.model.Client
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-fun AccountResponse.toDomain(): Account {
+fun ClientResponse.toDomain(): Client {
     val formatter = DateTimeFormatter.ISO_DATE_TIME
-    return Account(
+    return Client(
         id = id,
         name = name,
-        balance = balance,
         createdAt = LocalDateTime.parse(createdAt, formatter),
         updatedAt = LocalDateTime.parse(updatedAt, formatter),
     )
