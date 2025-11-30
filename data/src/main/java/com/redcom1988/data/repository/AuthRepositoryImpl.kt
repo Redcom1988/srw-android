@@ -20,4 +20,26 @@ class AuthRepositoryImpl(
             refreshToken = response.data.refreshToken
         )
     }
+
+    override suspend fun logout(refreshToken: String) {
+        val response = api.logout(refreshToken)
+
+        if (!response.success) {
+            throw Exception("Logout failed: ${response.message}")
+        }
+
+    }
+
+    override suspend fun refreshToken(refreshToken: String): AuthToken {
+        val response = api.refreshToken(refreshToken)
+
+        if (!response.success) {
+            throw Exception("Login failed: ${response.message}")
+        }
+
+        return AuthToken(
+            accessToken = response.data.accessToken,
+            refreshToken = response.data.refreshToken
+        )
+    }
 }

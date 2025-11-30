@@ -39,10 +39,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.redcom1988.srw.components.AppBar
+import com.redcom1988.srw.screens.loginscreen.LoginScreen
 
 object HomeScreen : Screen {
     @Suppress("unused")
@@ -51,9 +56,22 @@ object HomeScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val screenModel = rememberScreenModel { HomeScreenModel() }
+        val logoutState by screenModel.logoutState.collectAsState()
 
-        HomeScreenContent()
+        LaunchedEffect(logoutState) {
+            when (logoutState) {
+                is HomeScreenModel.LogoutState.Success -> {
+                    screenModel.resetState()
+                    navigator.replaceAll(LoginScreen)
+                }
+                else -> {}
+            }
+        }
 
+        HomeScreenContent(
+            onClickLogout = { screenModel.handleLogout() }
+        )
     }
 }
 
