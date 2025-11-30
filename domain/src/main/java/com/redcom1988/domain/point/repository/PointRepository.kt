@@ -5,6 +5,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface PointRepository{
 
-    override fun subscribe(clientId: Int): Flow<List<Point?>>
+    fun subscribe(clientId: Int): Flow<List<Point?>>
 
 }

@@ -1,16 +1,11 @@
 package com.redcom1988.data.remote.model
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class BaseResponse<T>(
-    @SerialName("metadata") val metadata: Metadata,
-    @SerialName("data") val data: T
-) {
-    @Serializable
-    data class Metadata(
-        @SerialName("success") val success: Boolean? = null,
-        @SerialName("message") val message: String? = null,
-    )
-}
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: T
+)

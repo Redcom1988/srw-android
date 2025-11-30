@@ -24,7 +24,7 @@ class ApplicationPreference(
 
     fun baseUrl() = preferenceStore.getString(
         key = "api_base_url",
-        defaultValue = ""
+        defaultValue = "srw-api.achmad.dev"
     )
 
     fun appTheme() = preferenceStore.getEnum(

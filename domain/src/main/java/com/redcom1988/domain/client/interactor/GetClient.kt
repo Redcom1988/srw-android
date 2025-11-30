@@ -9,7 +9,7 @@ class GetClient(
 ) {
 
     fun subscribeSingle(
-        accountId: String
+        accountId: Int
     ): Flow<Client?> {
         return clientRepository.subscribe(accountId)
     }
