@@ -91,7 +91,7 @@ private fun HomeScreenContent(
             AppBar(
                 titleContent = {
                     Text(
-                        text = "SRW",
+                        text = "SRW", // TODO String Resource
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -133,7 +133,7 @@ private fun HomeScreenContent(
             ExtendedFloatingActionButton(
                 text = {
                     Text(
-                        text = "Create",
+                        text = "Create", // TODO String Resource
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                     )
@@ -183,7 +183,7 @@ private fun BalanceCard(
         ) {
             Column {
                 Text(
-                    text = "Account Holder",
+                    text = "Account Holder", // TODO String Resource
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.7f)
                 )
@@ -200,7 +200,7 @@ private fun BalanceCard(
 
                 Column {
                     Text(
-                        text = "Available Balance",
+                        text = "Available Balance", // TODO String Resource
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.7f)
                     )
@@ -243,7 +243,7 @@ private fun RecentSubmissionsSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Recent Submissions",
+                text = "Recent Submissions", // TODO String Resource
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -252,7 +252,7 @@ private fun RecentSubmissionsSection(
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "View All",
+                    text = "View All", // TODO String Resource
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium
                 )
@@ -288,12 +288,12 @@ private fun RecentSubmissionsSection(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "No submissions yet",
+                    text = "No submissions yet", // TODO String Resource
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = "Your recent submissions will appear here",
+                    text = "Your recent submissions will appear here", // TODO String Resource
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )

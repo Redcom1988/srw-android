@@ -80,7 +80,6 @@ object CameraScreen : Screen {
             onBack = { navigator.pop() },
             onImageCaptured = { uri ->
                 // TODO: Navigate to preview/upload screen with the captured image
-                Log.d("CameraScreen", "Image captured: $uri")
                 navigator.pop()
             }
         )
@@ -187,7 +186,6 @@ private fun CameraScreenContent(
                                 imageCapture = capture,
                                 onImageCaptured = { uri ->
                                     screenModel.addImage(uri)
-                                    Log.d("CameraScreen", "Image captured: $uri")
                                 },
                                 onError = { exception ->
                                     Log.e("CameraScreen", "Camera error", exception)
@@ -209,10 +207,10 @@ private fun CameraScreenContent(
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             title = {
-                Text(text = "Finish Submission?")
+                Text(text = "Finish Submission?") // TODO String Resource
             },
             text = {
-                Text(text = "Are you sure you want to finish and submit ${capturedImages.size} image(s)?")
+                Text(text = "Are you sure you want to finish and submit ${capturedImages.size} image(s)?") // TODO String Resource
             },
             confirmButton = {
                 TextButton(
@@ -225,14 +223,14 @@ private fun CameraScreenContent(
                         onBack()
                     }
                 ) {
-                    Text("Yes")
+                    Text("Yes") // TODO String Resource
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showConfirmDialog = false }
                 ) {
-                    Text("Cancel")
+                    Text("Cancel") // TODO String Resource
                 }
             }
         )
@@ -361,12 +359,12 @@ private fun PermissionDenied(onRequestPermission: () -> Unit) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Camera Permission Denied",
+                text = "Camera Permission Denied", // TODO String Resource
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Please grant camera permission to use this feature.",
+                text = "Please grant camera permission to use this feature.", // TODO String Resource
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(vertical = 16.dp)
             )

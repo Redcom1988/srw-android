@@ -163,7 +163,7 @@ private fun LoginScreenContent(
                 when (state) {
                     is LoginScreenModel.LoginState.Idle -> {
                         Text(
-                            text = "Tap Your NFC Card",
+                            text = "Tap Your NFC Card", // TODO String Resource
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
@@ -172,7 +172,7 @@ private fun LoginScreenContent(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Hold your NFC card near the back\nof your device to login",
+                            text = "Hold your NFC card near the back\nof your device to login", // TODO String Resource
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -204,7 +204,7 @@ private fun LoginScreenContent(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Login Failed",
+                            text = "Login Failed", // TODO String Resource
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.error,
@@ -225,7 +225,7 @@ private fun LoginScreenContent(
                         Button(
                             onClick = { screenModel.resetState() }
                         ) {
-                            Text("Try Again")
+                            Text("Try Again") // TODO String Resource
                         }
                     }
 
@@ -254,11 +254,11 @@ private fun LoginScreenContent(
                         ) {
                             Text(
                                 text = if (nfcAdapter == null) {
-                                    "⚠️ NFC Not Available"
+                                    "⚠️ NFC Not Available" // TODO String Resource
                                 } else if (!nfcAdapter.isEnabled) {
-                                    "⚠️ Please Enable NFC in Settings"
+                                    "⚠️ Please Enable NFC in Settings" // TODO String Resource
                                 } else {
-                                    "✓ NFC Ready"
+                                    "✓ NFC Ready" // TODO String Resource
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
