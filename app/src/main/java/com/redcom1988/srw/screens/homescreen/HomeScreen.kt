@@ -47,6 +47,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.redcom1988.srw.components.AppBar
+import com.redcom1988.srw.screens.camerascreen.CameraScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
 
 object HomeScreen : Screen {
@@ -70,7 +71,8 @@ object HomeScreen : Screen {
         }
 
         HomeScreenContent(
-            onClickLogout = { screenModel.handleLogout() }
+            onClickLogout = { screenModel.handleLogout() },
+            onClickUpload = { navigator.push(CameraScreen) }
         )
     }
 }
