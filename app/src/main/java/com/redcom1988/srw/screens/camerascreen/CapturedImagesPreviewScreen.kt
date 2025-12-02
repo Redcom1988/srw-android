@@ -64,7 +64,7 @@ data class CapturedImagesPreviewScreen(
             images = images,
             currentPage = currentPage,
             onPageChanged = { currentPage = it },
-            onBack = {
+            onNavigateUp = {
                 onImagesUpdated(images)
                 navigator.pop()
             },
@@ -103,10 +103,10 @@ private fun ImagePagerView(
     images: List<Uri>,
     currentPage: Int,
     onPageChanged: (Int) -> Unit,
-    onBack: () -> Unit,
+    onNavigateUp: () -> Unit,
     onDeleteCurrent: () -> Unit
 ) {
-    BackHandler(onBack = onBack)
+    BackHandler(onBack = onNavigateUp)
 
     val pagerState = rememberPagerState(
         initialPage = currentPage,
@@ -122,7 +122,7 @@ private fun ImagePagerView(
         topBar = {
             AppBar(
                 title = "Captured Images", // TODO String Resource
-                navigateUp = onBack,
+                navigateUp = onNavigateUp,
                 actions = {
                     IconButton(onClick = onDeleteCurrent) {
                         Icon(
