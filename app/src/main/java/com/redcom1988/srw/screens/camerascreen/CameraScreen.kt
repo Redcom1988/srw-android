@@ -17,19 +17,19 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import coil3.compose.rememberAsyncImagePainter
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -38,17 +38,19 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,7 +61,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.redcom1988.srw.components.AppBar
+import coil3.compose.rememberAsyncImagePainter
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -97,9 +99,8 @@ private fun CameraScreenContent(
     val navigator = LocalNavigator.currentOrThrow
     val capturedImages by screenModel.capturedImages.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
-
-    // Store imageCapture in a mutable state to be set by CameraPreview
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -122,82 +123,80 @@ private fun CameraScreenContent(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            AppBar(
-                navigateUp = onBack,
-                titleContent = {},
-                actions = {
-                    IconButton(
-                        onClick = {
-                            if (capturedImages.isNotEmpty()) {
-                                showConfirmDialog = true
-                            }
-                        },
-                        enabled = capturedImages.isNotEmpty()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DoneAll,
-                            contentDescription = "Done",
-                            tint = if (capturedImages.isNotEmpty()) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            }
-                        )
-                    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (hasCameraPermission) {
+            // Camera preview fills the entire space
+            CameraPreview(
+                onImageCaptureReady = { capture ->
+                    imageCapture = capture
                 }
             )
-        },
-        containerColor = Color.Black
-    ) { paddingValues ->
+
+            // Bottom bar overlays on top of camera preview
+            CameraBottomBar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding(),
+                capturedImages = capturedImages,
+                onViewImages = {
+                    navigator.push(
+                        CapturedImagesPreviewScreen(
+                            capturedImages = capturedImages,
+                            onImagesUpdated = { updatedImages ->
+                                screenModel.updateImages(updatedImages)
+                            }
+                        )
+                    )
+                },
+                onCaptureImage = {
+                    imageCapture?.let { capture ->
+                        captureImage(
+                            context = context,
+                            imageCapture = capture,
+                            onImageCaptured = { uri ->
+                                screenModel.addImage(uri)
+                            },
+                            onError = { exception ->
+                                Log.e("CameraScreen", "Camera error", exception)
+                            }
+                        )
+                    }
+                },
+                onSubmit = {
+                    showConfirmDialog = true
+                }
+            )
+        } else {
+            PermissionDenied(
+                onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
+            )
+        }
+
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .statusBarsPadding()
         ) {
-            if (hasCameraPermission) {
-                // Camera preview fills the entire space
-                CameraPreview(
-                    onImageCaptureReady = { capture ->
-                        imageCapture = capture
-                    }
-                )
-
-                // Bottom bar overlays on top of camera preview
-                CameraBottomBar(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    capturedImages = capturedImages,
-                    onViewImages = {
-                        navigator.push(
-                            CapturedImagesPreviewScreen(
-                                capturedImages = capturedImages,
-                                onImagesUpdated = { updatedImages ->
-                                    screenModel.updateImages(updatedImages)
-                                }
-                            )
-                        )
-                    },
-                    onCaptureImage = {
-                        imageCapture?.let { capture ->
-                            captureImage(
-                                context = context,
-                                imageCapture = capture,
-                                onImageCaptured = { uri ->
-                                    screenModel.addImage(uri)
-                                },
-                                onError = { exception ->
-                                    Log.e("CameraScreen", "Camera error", exception)
-                                }
-                            )
-                        }
-                    }
-                )
-            } else {
-                PermissionDenied(
-                    onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            ) {
+                IconButton(
+                    onClick = onBack,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Done",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }
@@ -216,7 +215,6 @@ private fun CameraScreenContent(
                 TextButton(
                     onClick = {
                         showConfirmDialog = false
-                        // Return all captured images
                         capturedImages.forEach { uri ->
                             onImageCaptured(uri)
                         }
@@ -284,26 +282,28 @@ private fun CameraBottomBar(
     modifier: Modifier = Modifier,
     capturedImages: List<Uri>,
     onViewImages: () -> Unit,
-    onCaptureImage: () -> Unit
+    onCaptureImage: () -> Unit,
+    onSubmit: () -> Unit
 ) {
+    val hasImages = capturedImages.isNotEmpty()
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.Black.copy(alpha = 0.3f))
-            .padding(vertical = 32.dp, horizontal = 16.dp)
+            .padding(32.dp)
     ) {
-        // View captured images button with badge at bottom left - shows latest image
-        if (capturedImages.isNotEmpty()) {
+        if (hasImages) {
             Box(
-                modifier = Modifier.align(Alignment.CenterStart)
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 8.dp)
             ) {
                 FloatingActionButton(
                     onClick = onViewImages,
-                    modifier = Modifier.size(64.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    modifier = Modifier.size(48.dp),
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
                 ) {
-                    // Show the latest captured image as thumbnail
                     Image(
                         painter = rememberAsyncImagePainter(capturedImages.last()),
                         contentDescription = "Latest Captured Image",
@@ -312,13 +312,12 @@ private fun CameraBottomBar(
                     )
                 }
 
-                // Badge with count
                 Badge(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 4.dp, end = 4.dp)
+                        .padding(end = 2.dp)
                 ) {
                     Text(
                         text = capturedImages.size.toString(),
@@ -327,23 +326,31 @@ private fun CameraBottomBar(
                     )
                 }
             }
+
+            FloatingActionButton(
+                onClick = onSubmit,
+                shape = CircleShape,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(48.dp),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DoneAll,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    contentDescription = "Done",
+                )
+            }
         }
 
-        // Camera capture button at bottom center
         FloatingActionButton(
             onClick = onCaptureImage,
             modifier = Modifier
                 .align(Alignment.Center)
                 .size(72.dp),
             shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = Icons.Default.CameraAlt,
-                contentDescription = "Capture",
-                modifier = Modifier.size(32.dp)
-            )
-        }
+            containerColor = Color.White
+        ) {}
     }
 }
 
@@ -384,7 +391,7 @@ private fun captureImage(
     val photoFile = File(
         context.getExternalFilesDir(null),
         SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
-            .format(System.currentTimeMillis()) + ".jpg"
+            .format(System.currentTimeMillis()) + ".png"
     )
 
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()

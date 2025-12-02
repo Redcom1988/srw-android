@@ -1,25 +1,27 @@
 package com.redcom1988.srw.screens.camerascreen
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,25 +30,25 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.rememberAsyncImagePainter
 import com.redcom1988.srw.components.AppBar
+import kotlinx.coroutines.launch
 
 data class CapturedImagesPreviewScreen(
     val capturedImages: List<Uri>,
@@ -57,57 +59,84 @@ data class CapturedImagesPreviewScreen(
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         var images by remember { mutableStateOf(capturedImages) }
-        var selectedImage by remember { mutableStateOf<Uri?>(null) }
+        var showDeleteDialog by remember { mutableStateOf(false) }
+        var currentPage by remember { mutableStateOf(0) }
 
-        CapturedImagesPreviewContent(
+        ImagePagerView(
             images = images,
+            currentPage = currentPage,
+            onPageChanged = { currentPage = it },
             onBack = {
                 onImagesUpdated(images)
                 navigator.pop()
             },
-            onImageClick = { uri ->
-                selectedImage = uri
-            },
-            onImageDelete = { uri ->
-                images = images.filter { it != uri }
+            onDeleteCurrent = {
+                showDeleteDialog = true
             }
         )
 
-        // Full screen image viewer dialog
-        selectedImage?.let { uri ->
-            FullScreenImageDialog(
-                imageUri = uri,
-                onDismiss = { selectedImage = null },
-                onDelete = {
-                    images = images.filter { it != uri }
-                    selectedImage = null
+        if (showDeleteDialog) {
+            DeleteConfirmationDialog(
+                count = 1,
+                onConfirm = {
+                    if (images.isNotEmpty()) {
+                        images = images.filterIndexed { index, _ -> index != currentPage }
+                        if (currentPage >= images.size && images.isNotEmpty()) {
+                            currentPage = images.size - 1
+                        }
+                        if (images.isEmpty()) {
+                            onImagesUpdated(images)
+                            navigator.pop()
+                        }
+                    }
+                    showDeleteDialog = false
+                },
+                onDismiss = {
+                    showDeleteDialog = false
                 }
             )
         }
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CapturedImagesPreviewContent(
+private fun ImagePagerView(
     images: List<Uri>,
+    currentPage: Int,
+    onPageChanged: (Int) -> Unit,
     onBack: () -> Unit,
-    onImageClick: (Uri) -> Unit,
-    onImageDelete: (Uri) -> Unit
+    onDeleteCurrent: () -> Unit
 ) {
+    BackHandler(onBack = onBack)
+
+    val pagerState = rememberPagerState(
+        initialPage = currentPage,
+        pageCount = { images.size }
+    )
+    val thumbnailListState = rememberLazyListState()
+
+    LaunchedEffect(pagerState.currentPage) {
+        onPageChanged(pagerState.currentPage)
+    }
+
     Scaffold(
         topBar = {
             AppBar(
+                title = "Captured Images",
                 navigateUp = onBack,
-                titleContent = {
-                    Text(
-                        text = "Captured Images (${images.size})",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                actions = {
+                    IconButton(onClick = onDeleteCurrent) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Current Image"
+                        )
+                    }
                 }
             )
-        }
+        },
+        containerColor = Color.Black
     ) { paddingValues ->
         if (images.isEmpty()) {
             Box(
@@ -117,27 +146,62 @@ private fun CapturedImagesPreviewContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "No images captured",
+                    text = "No images",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.White
                 )
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(paddingValues)
             ) {
-                items(images) { imageUri ->
-                    ImageGridItem(
-                        imageUri = imageUri,
-                        onClick = { onImageClick(imageUri) },
-                        onDelete = { onImageDelete(imageUri) }
-                    )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) { page ->
+                    val imageUri = images[page]
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(imageUri),
+                            contentDescription = "Image ${page + 1}",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LazyRow(
+                        state = thumbnailListState,
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        itemsIndexed(images) { index, imageUri ->
+                            val coroutineScope = rememberCoroutineScope()
+                            ThumbnailItem(
+                                imageUri = imageUri,
+                                isCurrentPage = pagerState.currentPage == index,
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -145,104 +209,73 @@ private fun CapturedImagesPreviewContent(
 }
 
 @Composable
-private fun ImageGridItem(
+private fun ThumbnailItem(
     imageUri: Uri,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
+    isCurrentPage: Boolean,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .size(if (!isCurrentPage) 56.dp else 64.dp),
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isCurrentPage) 8.dp else 2.dp
+        )
     ) {
-        Box {
-            Image(
-                painter = rememberAsyncImagePainter(imageUri),
-                contentDescription = "Captured Image",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-
-            // Delete button
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .clickable { onDelete() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
+        Image(
+            painter = rememberAsyncImagePainter(imageUri),
+            contentDescription = "Thumbnail",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FullScreenImageDialog(
-    imageUri: Uri,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit
+private fun DeleteConfirmationDialog(
+    count: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    Dialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Scaffold(
-            topBar = {
-                AppBar(
-                    navigateUp = onDismiss,
-                    navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
-                    titleContent = {
-                        Text(
-                            text = "Preview",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.White
-                            )
-                        }
-                    },
-                    backgroundColor = Color.Black.copy(alpha = 0.7f)
-                )
-            },
-            containerColor = Color.Black
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .clickable { onDismiss() },
-                contentAlignment = Alignment.Center
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = {
+            Text(text = "Delete image?")
+        },
+        text = {
+            Text(
+                text = if (count == 1) {
+                    "Are you sure you want to delete this image? This action cannot be undone."
+                } else {
+                    "Are you sure you want to delete $count images? This action cannot be undone."
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm
             ) {
-                Image(
-                    painter = rememberAsyncImagePainter(imageUri),
-                    contentDescription = "Full Screen Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
+                Text(
+                    text = "Delete",
+                    color = MaterialTheme.colorScheme.error
                 )
             }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text(text = "Cancel")
+            }
         }
-    }
+    )
 }
 
