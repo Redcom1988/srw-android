@@ -5,6 +5,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface ClientRepository {
 
-    fun subscribe(clientId: Int): Flow<Client?>
+    suspend fun fetchClientProfile(): Client
 
 }
