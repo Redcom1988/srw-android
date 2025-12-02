@@ -22,12 +22,10 @@ import cafe.adriel.voyager.transitions.ScreenTransition
 import com.redcom1988.domain.preference.ApplicationPreference
 import com.redcom1988.srw.screens.homescreen.HomeScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
-import com.redcom1988.srw.screens.testscreen.TestScreen
 import com.redcom1988.srw.theme.AppTheme
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
 import soup.compose.material.motion.animation.materialSharedAxisX
 import soup.compose.material.motion.animation.rememberSlideDistance
@@ -37,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     private val applicationPreference: ApplicationPreference by inject()
 
     private var isReady = false
-    private var initialScreen: Screen = TestScreen
+    private var initialScreen: Screen = LoginScreen
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,17 +84,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handlePreDraw() {
-        // Handle pre draw here (e.g. Splash Screen, fetch data, etc)
-        // Check if user is logged in by checking access token
-//        val accessToken = runBlocking { applicationPreference.accessToken().get() }
-//
-//        initialScreen = if (accessToken.isNullOrEmpty()) {
-//            LoginScreen
-//        } else {
-//            HomeScreen
-//        }
-        initialScreen = HomeScreen
-
+        val accessToken = applicationPreference.accessToken().get()
+        initialScreen = if (accessToken.isEmpty()) { LoginScreen } else { HomeScreen }
         isReady = true
     }
 

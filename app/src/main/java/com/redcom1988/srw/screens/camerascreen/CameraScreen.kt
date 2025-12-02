@@ -2,11 +2,9 @@ package com.redcom1988.srw.screens.camerascreen
 
 import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -16,7 +14,6 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,14 +22,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -62,6 +56,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.rememberAsyncImagePainter
+import com.redcom1988.srw.util.rememberPermissionState
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -76,11 +71,18 @@ object CameraScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { CameraScreenModel() }
+        val capturedImages by screenModel.capturedImages.collectAsState()
 
         CameraScreenContent(
-            screenModel = screenModel,
-            onBack = { navigator.pop() },
-            onImageCaptured = { uri ->
+            capturedImages = capturedImages,
+            onAddImage = { uri ->
+                screenModel.addImage(uri)
+            },
+            onUpdateImages = { uri ->
+                screenModel.updateImages(uri)
+            },
+            onNavigateUp = { navigator.pop() },
+            onSubmit = { uri ->
                 // TODO: Navigate to preview/upload screen with the captured image
                 navigator.pop()
             }
@@ -91,52 +93,42 @@ object CameraScreen : Screen {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CameraScreenContent(
-    screenModel: CameraScreenModel,
-    onBack: () -> Unit,
-    onImageCaptured: (Uri) -> Unit
+    capturedImages: List<Uri>,
+    onAddImage: (Uri) -> Unit,
+    onUpdateImages: (List<Uri>) -> Unit,
+    onNavigateUp: () -> Unit,
+    onSubmit: (Uri) -> Unit
 ) {
     val context = LocalContext.current
     val navigator = LocalNavigator.currentOrThrow
-    val capturedImages by screenModel.capturedImages.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showBackDialog by remember { mutableStateOf(false) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
-
-
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasCameraPermission = isGranted
-    }
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     LaunchedEffect(Unit) {
-        if (!hasCameraPermission) {
-            launcher.launch(Manifest.permission.CAMERA)
+        if (!cameraPermissionState.isGranted.value ) {
+            cameraPermissionState.requestPermission()
         }
     }
+
+    BackHandler(
+        onBack = {
+            if (capturedImages.isEmpty()) onNavigateUp() else showBackDialog = true
+        }
+    )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
     ) {
-        if (hasCameraPermission) {
-            // Camera preview fills the entire space
+        if (cameraPermissionState.isGranted.value) {
             CameraPreview(
                 onImageCaptureReady = { capture ->
                     imageCapture = capture
                 }
             )
 
-            // Bottom bar overlays on top of camera preview
             CameraBottomBar(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -146,9 +138,7 @@ private fun CameraScreenContent(
                     navigator.push(
                         CapturedImagesPreviewScreen(
                             capturedImages = capturedImages,
-                            onImagesUpdated = { updatedImages ->
-                                screenModel.updateImages(updatedImages)
-                            }
+                            onImagesUpdated = onUpdateImages
                         )
                     )
                 },
@@ -157,9 +147,7 @@ private fun CameraScreenContent(
                         captureImage(
                             context = context,
                             imageCapture = capture,
-                            onImageCaptured = { uri ->
-                                screenModel.addImage(uri)
-                            },
+                            onImageCaptured = onAddImage,
                             onError = { exception ->
                                 Log.e("CameraScreen", "Camera error", exception)
                             }
@@ -169,10 +157,6 @@ private fun CameraScreenContent(
                 onSubmit = {
                     showConfirmDialog = true
                 }
-            )
-        } else {
-            PermissionDenied(
-                onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
             )
         }
 
@@ -189,47 +173,64 @@ private fun CameraScreenContent(
                     .padding(horizontal = 8.dp)
             ) {
                 IconButton(
-                    onClick = onBack,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Done",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                    onClick = {
+                        if (capturedImages.isEmpty()) onNavigateUp() else showBackDialog = true
+                    },
+                    content = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                )
             }
         }
+    }
+
+    if (showBackDialog) {
+        AlertDialog(
+            onDismissRequest = { showBackDialog = false },
+            title = { Text(text = "Cancel Submission?") }, // TODO String Resource
+            text = { Text(text = "Are you sure you want to cancel your submission?") }, // TODO String Resource
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBackDialog = false
+                        onNavigateUp()
+                    },
+                    content = { Text("Yes") } // TODO String Resource
+                )
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showBackDialog = false },
+                    content = { Text("Cancel") } // TODO String Resource
+                )
+            }
+        )
     }
 
     // Confirmation dialog
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = {
-                Text(text = "Finish Submission?") // TODO String Resource
-            },
-            text = {
-                Text(text = "Are you sure you want to finish and submit ${capturedImages.size} image(s)?") // TODO String Resource
-            },
+            title = { Text(text = "Finish Submission?") }, // TODO String Resource
+            text = { Text(text = "Are you sure you want to finish and submit ${capturedImages.size} image(s)?") }, // TODO String Resource
             confirmButton = {
                 TextButton(
                     onClick = {
                         showConfirmDialog = false
-                        capturedImages.forEach { uri ->
-                            onImageCaptured(uri)
-                        }
-                        onBack()
-                    }
-                ) {
-                    Text("Yes") // TODO String Resource
-                }
+                        capturedImages.forEach { uri -> onSubmit(uri) }
+                    },
+                    content = { Text("Yes") } // TODO String Resource
+                )
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showConfirmDialog = false }
-                ) {
-                    Text("Cancel") // TODO String Resource
-                }
+                    onClick = { showBackDialog = false },
+                    content = { Text("Cancel") } // TODO String Resource
+                )
             }
         )
     }
@@ -264,7 +265,6 @@ private fun CameraPreview(
                 preview,
                 imageCapture
             )
-            // Notify parent that imageCapture is ready
             onImageCaptureReady(imageCapture)
         } catch (e: Exception) {
             Log.e("CameraPreview", "Failed to bind camera use cases", e)
@@ -306,7 +306,7 @@ private fun CameraBottomBar(
                 ) {
                     Image(
                         painter = rememberAsyncImagePainter(capturedImages.last()),
-                        contentDescription = "Latest Captured Image",
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -317,14 +317,15 @@ private fun CameraBottomBar(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(end = 2.dp)
-                ) {
-                    Text(
-                        text = capturedImages.size.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                        .padding(end = 2.dp),
+                    content =  {
+                        Text(
+                            text = capturedImages.size.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                )
             }
 
             FloatingActionButton(
@@ -333,14 +334,15 @@ private fun CameraBottomBar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .size(48.dp),
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DoneAll,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    contentDescription = "Done",
-                )
-            }
+                containerColor = MaterialTheme.colorScheme.surface,
+                content = {
+                    Icon(
+                        imageVector = Icons.Default.DoneAll,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = null,
+                    )
+                }
+            )
         }
 
         FloatingActionButton(
@@ -349,36 +351,9 @@ private fun CameraBottomBar(
                 .align(Alignment.Center)
                 .size(72.dp),
             shape = CircleShape,
-            containerColor = Color.White
-        ) {}
-    }
-}
-
-
-@Composable
-private fun PermissionDenied(onRequestPermission: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Camera Permission Denied", // TODO String Resource
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Please grant camera permission to use this feature.", // TODO String Resource
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-            Button(onClick = onRequestPermission) {
-                Text("Request Permission")
-            }
-        }
+            containerColor = Color.White,
+            content = {}
+        )
     }
 }
 

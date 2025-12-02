@@ -3,14 +3,12 @@ package com.redcom1988.srw.screens.camerascreen
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -77,7 +75,6 @@ data class CapturedImagesPreviewScreen(
 
         if (showDeleteDialog) {
             DeleteConfirmationDialog(
-                count = 1,
                 onConfirm = {
                     if (images.isNotEmpty()) {
                         images = images.filterIndexed { index, _ -> index != currentPage }
@@ -124,13 +121,13 @@ private fun ImagePagerView(
     Scaffold(
         topBar = {
             AppBar(
-                title = "Captured Images",
+                title = "Captured Images", // TODO String Resource
                 navigateUp = onBack,
                 actions = {
                     IconButton(onClick = onDeleteCurrent) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Current Image"
+                            contentDescription = null
                         )
                     }
                 }
@@ -225,7 +222,7 @@ private fun ThumbnailItem(
     ) {
         Image(
             painter = rememberAsyncImagePainter(imageUri),
-            contentDescription = "Thumbnail",
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -234,7 +231,6 @@ private fun ThumbnailItem(
 
 @Composable
 private fun DeleteConfirmationDialog(
-    count: Int,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -247,34 +243,24 @@ private fun DeleteConfirmationDialog(
                 tint = MaterialTheme.colorScheme.error
             )
         },
-        title = {
-            Text(text = "Delete image?")
-        },
-        text = {
-            Text(
-                text = if (count == 1) {
-                    "Are you sure you want to delete this image? This action cannot be undone."
-                } else {
-                    "Are you sure you want to delete $count images? This action cannot be undone."
+        title = { Text(text = "Delete image?") }, // TODO String Resource
+        text = { Text(text = "Are you sure you want to delete this image? This action cannot be undone." ) }, // TODO String Resource
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                content = {
+                    Text(
+                        text = "Delete", // TODO String Resource
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             )
         },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm
-            ) {
-                Text(
-                    text = "Delete",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        },
         dismissButton = {
             TextButton(
-                onClick = onDismiss
-            ) {
-                Text(text = "Cancel")
-            }
+                onClick = onDismiss,
+                content = { Text(text = "Cancel") }// TODO String Resource
+            )
         }
     )
 }

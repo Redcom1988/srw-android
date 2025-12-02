@@ -53,9 +53,16 @@ object LoginScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val screenModel = rememberScreenModel { LoginScreenModel() }
+        val state by screenModel.state.collectAsState()
 
         LoginScreenContent(
-            screenModel = screenModel,
+            state = state,
+            onHandleNfcTag = { nfc ->
+                screenModel.handleNfcTag(nfc)
+            },
+            onResetState = {
+                screenModel.resetState()
+            },
             onLoginSuccess = {
                 navigator.replaceAll(HomeScreen)
             }
@@ -66,10 +73,11 @@ object LoginScreen : Screen {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LoginScreenContent(
-    screenModel: LoginScreenModel,
+    state: LoginScreenModel.LoginState,
+    onHandleNfcTag: (String) -> Unit,
+    onResetState: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
-    val state by screenModel.state.collectAsState()
     val context = LocalContext.current
     val activity = context as? Activity
 
@@ -80,9 +88,9 @@ private fun LoginScreenContent(
         val nfcListener = NfcAdapter.ReaderCallback { tag ->
             val nfcNumber = extractNfcNumber(tag)
             if (nfcNumber.isNotEmpty()) {
-                screenModel.handleNfcTag(nfcNumber)
+                onHandleNfcTag(nfcNumber)
             } else {
-                screenModel.resetState()
+                onResetState()
             }
         }
 
@@ -113,7 +121,7 @@ private fun LoginScreenContent(
         }
     }
 
-    Scaffold() { contentPadding ->
+    Scaffold { contentPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,7 +136,7 @@ private fun LoginScreenContent(
             ) {
                 // App logo/title
                 Text(
-                    text = "SRW",
+                    text = "SRW", // TODO String Resource
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -150,7 +158,7 @@ private fun LoginScreenContent(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Nfc,
-                            contentDescription = "NFC",
+                            contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -187,7 +195,7 @@ private fun LoginScreenContent(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Authenticating...",
+                            text = "Authenticating...", // TODO String Resource
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center
                         )
@@ -196,7 +204,7 @@ private fun LoginScreenContent(
                     is LoginScreenModel.LoginState.Error -> {
                         Icon(
                             imageVector = Icons.Default.Error,
-                            contentDescription = "Error",
+                            contentDescription = null,
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.error
                         )
@@ -214,7 +222,7 @@ private fun LoginScreenContent(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = (state as LoginScreenModel.LoginState.Error).message,
+                            text = state.message,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -223,7 +231,7 @@ private fun LoginScreenContent(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = { screenModel.resetState() }
+                            onClick = onResetState
                         ) {
                             Text("Try Again") // TODO String Resource
                         }
@@ -242,28 +250,41 @@ private fun LoginScreenContent(
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    Card(
-                        modifier = Modifier,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = if (nfcAdapter == null) {
-                                    "⚠️ NFC Not Available" // TODO String Resource
-                                } else if (!nfcAdapter.isEnabled) {
-                                    "⚠️ Please Enable NFC in Settings" // TODO String Resource
-                                } else {
-                                    "✓ NFC Ready" // TODO String Resource
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Center
+                        Card(
+                            modifier = Modifier,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
                             )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = if (nfcAdapter == null) {
+                                        "⚠️ NFC Not Available" // TODO String Resource
+                                    } else if (!nfcAdapter.isEnabled) {
+                                        "⚠️ Please Enable NFC in Settings" // TODO String Resource
+                                    } else {
+                                        "✓ NFC Ready" // TODO String Resource
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Debug mock login button
+                        Button(
+                            onClick = { onHandleNfcTag("client") }
+                        ) {
+                            Text("Mock Login (Debug)")
                         }
                     }
                 }
