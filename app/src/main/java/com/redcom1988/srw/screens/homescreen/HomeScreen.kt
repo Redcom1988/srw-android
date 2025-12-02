@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +70,11 @@ object HomeScreen : Screen {
         val profileState by screenModel.profileState.collectAsState()
         val submissionsState by screenModel.submissionsState.collectAsState()
 
+        LaunchedEffect(Unit) {
+            screenModel.loadProfile()
+            screenModel.loadRecentSubmissions()
+        }
+
         LaunchedEffect(logoutState) {
             when (logoutState) {
                 is HomeScreenModel.LogoutState.Success -> {
@@ -86,8 +92,12 @@ object HomeScreen : Screen {
             profileState = profileState,
             submissionsState = submissionsState,
             onClickViewAll = { navigator.push(SubmissionsScreen) },
-            onClickLogout = { screenModel.handleLogout() },
-            onClickUpload = { navigator.push(CameraScreen) }
+            onClickLogout = screenModel::handleLogout,
+            onClickUpload = { navigator.push(CameraScreen) },
+            onRefresh = {
+                screenModel.loadProfile()
+                screenModel.loadRecentSubmissions()
+            }
         )
     }
 }
@@ -101,6 +111,7 @@ private fun HomeScreenContent(
     onClickLedger: () -> Unit = {},
     onClickViewAll: () -> Unit = {},
     onClickUpload: () -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     var selectedSubmission by remember { mutableStateOf<Submission?>(null) }
 
@@ -111,28 +122,8 @@ private fun HomeScreenContent(
         )
     }
 
-    if (profileState is HomeScreenModel.ProfileState.Loading ||
-        submissionsState is HomeScreenModel.SubmissionsState.Loading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp)
-                )
-                Text(
-                    text = "Loading...", // TODO String Resource
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        return
-    }
+    val isLoading = profileState is HomeScreenModel.ProfileState.Loading ||
+                    submissionsState is HomeScreenModel.SubmissionsState.Loading
 
     Scaffold(
         topBar = {
@@ -145,6 +136,15 @@ private fun HomeScreenContent(
                     )
                 }, // TODO change to app icon
                 actions = {
+                    IconButton(
+                        onClick = onRefresh,
+                        enabled = !isLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null
+                        )
+                    }
                     IconButton(
                         onClick = onClickLogout,
                     ) {
@@ -162,14 +162,34 @@ private fun HomeScreenContent(
                 .fillMaxSize()
                 .padding(contentPadding)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Show balance card with actual profile data
-                when (profileState) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "Loading...", // TODO String Resource
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        when (profileState) {
                     is HomeScreenModel.ProfileState.Success -> {
                         BalanceCard(
                             onClickLedger = onClickLedger,
@@ -208,40 +228,40 @@ private fun HomeScreenContent(
                             }
                         }
                     }
-                    else -> {
-                        // Idle state - show nothing or placeholder
-                    }
+                    else -> {}
                 }
 
-                RecentSubmissionsSection(
-                    submissionsState = submissionsState,
-                    onClickViewAll = onClickViewAll,
-                    onSubmissionClick = { submission ->
-                        selectedSubmission = submission
+                    RecentSubmissionsSection(
+                        submissionsState = submissionsState,
+                        onClickViewAll = onClickViewAll,
+                        onSubmissionClick = { submission ->
+                            selectedSubmission = submission
+                        }
+                    )
                     }
-                )
-            }
 
-            ExtendedFloatingActionButton(
-                text = {
-                    Text(
-                        text = "Create", // TODO String Resource
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
+                    ExtendedFloatingActionButton(
+                        text = {
+                            Text(
+                                text = "Create", // TODO String Resource
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = onClickUpload,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
-                },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = null
-                    )
-                },
-                onClick = onClickUpload,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary
-            )
+                }
+            }
         }
     }
 }

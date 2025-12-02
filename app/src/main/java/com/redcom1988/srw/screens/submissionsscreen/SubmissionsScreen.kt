@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -60,7 +64,6 @@ private fun SubmissionsScreenContent(
 ) {
     var selectedSubmission by remember { mutableStateOf<Submission?>(null) }
 
-    // Show submission detail bottom sheet
     selectedSubmission?.let { submission ->
         SubmissionDetailBottomSheet(
             submission = submission,
@@ -68,11 +71,24 @@ private fun SubmissionsScreenContent(
         )
     }
 
+    val isRefreshing = lazyPagingItems.loadState.refresh is LoadState.Loading
+
     Scaffold(
         topBar = {
             AppBar(
                 title = "Submissions", // TODO String Resource
-                navigateUp = onNavigateUp
+                navigateUp = onNavigateUp,
+                actions = {
+                    IconButton(
+                        onClick = { lazyPagingItems.refresh() },
+                        enabled = !isRefreshing
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -81,19 +97,28 @@ private fun SubmissionsScreenContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (
-                lazyPagingItems.loadState.refresh) {
-                is LoadState.Loading if lazyPagingItems.itemCount == 0 -> {
+            when {
+                isRefreshing -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text(
+                                text = "Loading...", // TODO String Resource
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
                 // Error state
-                is LoadState.Error -> {
+                lazyPagingItems.loadState.refresh is LoadState.Error -> {
                     val error = (lazyPagingItems.loadState.refresh as LoadState.Error).error
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -111,7 +136,7 @@ private fun SubmissionsScreenContent(
                 }
 
                 // Empty state
-                is LoadState.NotLoading if lazyPagingItems.itemCount == 0 -> {
+                lazyPagingItems.loadState.refresh is LoadState.NotLoading && lazyPagingItems.itemCount == 0 -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -120,7 +145,6 @@ private fun SubmissionsScreenContent(
                     }
                 }
 
-                // Success state - show list
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -140,7 +164,6 @@ private fun SubmissionsScreenContent(
                             }
                         }
 
-                        // Loading indicator at the bottom when loading more
                         if (lazyPagingItems.loadState.append is LoadState.Loading) {
                             item {
                                 Box(

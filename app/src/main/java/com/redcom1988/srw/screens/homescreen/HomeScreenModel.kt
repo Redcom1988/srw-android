@@ -50,7 +50,7 @@ class HomeScreenModel(
         }
     }
 
-    private fun loadRecentSubmissions() {
+    fun loadRecentSubmissions() {
         screenModelScope.launch {
             _submissionsState.value = SubmissionsState.Loading
 

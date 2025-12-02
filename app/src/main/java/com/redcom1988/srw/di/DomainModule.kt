@@ -15,6 +15,7 @@ import com.redcom1988.domain.point.repository.PointRepository
 import com.redcom1988.domain.preference.ApplicationPreference
 import com.redcom1988.domain.submission.interactor.GetRecentSubmissions
 import com.redcom1988.domain.submission.interactor.GetSubmissions
+import com.redcom1988.domain.submission.interactor.UploadSubmission
 import com.redcom1988.domain.submission.repository.SubmissionRepository
 import org.koin.dsl.module
 
@@ -36,5 +37,6 @@ val domainModule = module {
     single<SubmissionRepository> { SubmissionRepositoryImpl(get()) }
     single { GetSubmissions(get()) }
     single { GetRecentSubmissions(get()) }
+    single { UploadSubmission(get()) }
 
 }

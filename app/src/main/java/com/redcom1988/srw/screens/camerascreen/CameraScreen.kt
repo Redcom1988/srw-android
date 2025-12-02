@@ -70,22 +70,33 @@ object CameraScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val context = LocalContext.current
         val screenModel = rememberScreenModel { CameraScreenModel() }
         val capturedImages by screenModel.capturedImages.collectAsState()
+        val uploadState by screenModel.uploadState.collectAsState()
+
+        LaunchedEffect(uploadState) {
+            when (uploadState) {
+                is CameraScreenModel.UploadState.Success -> {
+                    screenModel.resetUploadState()
+                    navigator.pop()
+                    // TODO: Show success message or navigate to submission detail
+                }
+                is CameraScreenModel.UploadState.Error -> {
+                    // TODO: Show error message
+                    screenModel.resetUploadState()
+                }
+                else -> {}
+            }
+        }
 
         CameraScreenContent(
             capturedImages = capturedImages,
-            onAddImage = { uri ->
-                screenModel.addImage(uri)
-            },
-            onUpdateImages = { uri ->
-                screenModel.updateImages(uri)
-            },
+            uploadState = uploadState,
+            onAddImage = screenModel::addImage,
+            onUpdateImages = screenModel::updateImages,
             onNavigateUp = { navigator.pop() },
-            onSubmit = { uri ->
-                // TODO: Navigate to preview/upload screen with the captured image
-                navigator.pop()
-            }
+            onSubmit = { screenModel.submitImages(context) }
         )
     }
 }
@@ -94,10 +105,11 @@ object CameraScreen : Screen {
 @Composable
 private fun CameraScreenContent(
     capturedImages: List<Uri>,
+    uploadState: CameraScreenModel.UploadState,
     onAddImage: (Uri) -> Unit,
     onUpdateImages: (List<Uri>) -> Unit,
     onNavigateUp: () -> Unit,
-    onSubmit: (Uri) -> Unit
+    onSubmit: () -> Unit
 ) {
     val context = LocalContext.current
     val navigator = LocalNavigator.currentOrThrow
@@ -128,6 +140,20 @@ private fun CameraScreenContent(
                     imageCapture = capture
                 }
             )
+
+            // Loading overlay during upload
+            if (uploadState is CameraScreenModel.UploadState.Loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             CameraBottomBar(
                 modifier = Modifier
@@ -221,14 +247,14 @@ private fun CameraScreenContent(
                 TextButton(
                     onClick = {
                         showConfirmDialog = false
-                        capturedImages.forEach { uri -> onSubmit(uri) }
+                        onSubmit()
                     },
                     content = { Text("Yes") } // TODO String Resource
                 )
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showBackDialog = false },
+                    onClick = { showConfirmDialog = false },
                     content = { Text("Cancel") } // TODO String Resource
                 )
             }
@@ -366,7 +392,7 @@ private fun captureImage(
     val photoFile = File(
         context.getExternalFilesDir(null),
         SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.US)
-            .format(System.currentTimeMillis()) + ".png"
+            .format(System.currentTimeMillis()) + ".jpg"
     )
 
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()

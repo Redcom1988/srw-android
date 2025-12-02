@@ -7,6 +7,8 @@ import com.redcom1988.data.remote.model.submission.toDomain
 import com.redcom1988.data.remote.source.SubmissionsPagingSource
 import com.redcom1988.domain.submission.model.Submission
 import com.redcom1988.domain.submission.repository.SubmissionRepository
+import java.io.File
+
 
 @OptIn(kotlin.time.ExperimentalTime::class)
 class SubmissionRepositoryImpl(
@@ -38,6 +40,21 @@ class SubmissionRepositoryImpl(
 
         val data = response.data ?: throw Exception("No data received")
         return data.data.map { it.toDomain() }
+    }
+
+    override suspend fun uploadSubmission(imageFiles: List<File>): Submission {
+        val response = api.uploadSubmission(imageFiles)
+
+        if (response.error != null) {
+            throw Exception(response.error)
+        }
+
+        if (response.success != true) {
+            throw Exception("Failed to upload submission: ${response.message ?: "Unknown error"}")
+        }
+
+        val data = response.data ?: throw Exception("No data received")
+        return data.toDomain()
     }
 
 }

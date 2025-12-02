@@ -15,7 +15,10 @@ import com.redcom1988.domain.preference.ApplicationPreference
 import kotlinx.serialization.json.Json
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 class SRWApi(
     private val networkHelper: NetworkHelper,
@@ -116,6 +119,58 @@ class SRWApi(
             GET(
                 url = url,
                 headers = headers
+            )
+        ).await()
+
+        return Json.decodeFromString(response.body.string())
+    }
+
+    suspend fun uploadSubmission(
+        imageFiles: List<File>
+    ): BaseResponse<SubmissionResponse> {
+        val accessToken = preference.accessToken().get()
+        val multipartBodyBuilder = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+
+        imageFiles.forEach { file ->
+            // Detect actual file type by reading magic bytes
+            val fileBytes = file.readBytes()
+            val isPng = fileBytes.size >= 8 &&
+                fileBytes[0] == 0x89.toByte() &&
+                fileBytes[1] == 0x50.toByte() &&
+                fileBytes[2] == 0x4E.toByte() &&
+                fileBytes[3] == 0x47.toByte()
+            val isJpeg = fileBytes.size >= 2 &&
+                fileBytes[0] == 0xFF.toByte() &&
+                fileBytes[1] == 0xD8.toByte()
+
+            val detectedType = when {
+                isPng -> "image/png"
+                isJpeg -> "image/jpeg"
+                else -> "application/octet-stream"
+            }
+
+            val requestBody = file.asRequestBody(detectedType.toMediaType())
+            multipartBodyBuilder.addFormDataPart(
+                name = "File",
+                filename = file.name,
+                body = requestBody
+            )
+        }
+
+        val requestBody = multipartBodyBuilder.build()
+
+        val headers = Headers.Builder()
+            .add("Authorization", "Bearer $accessToken")
+            .build()
+
+        val url = preference.baseUrl().get() + "/clients/submissions/new"
+
+        val response = networkHelper.client.newCall(
+            POST(
+                url = url,
+                headers = headers,
+                body = requestBody
             )
         ).await()
 
