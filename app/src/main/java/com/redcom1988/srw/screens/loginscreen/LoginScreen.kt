@@ -57,12 +57,8 @@ object LoginScreen : Screen {
 
         LoginScreenContent(
             state = state,
-            onHandleNfcTag = { nfc ->
-                screenModel.handleNfcTag(nfc)
-            },
-            onResetState = {
-                screenModel.resetState()
-            },
+            onHandleNfcTag = screenModel::handleNfcTag,
+            onResetState = screenModel::resetState,
             onLoginSuccess = {
                 navigator.replaceAll(HomeScreen)
             }

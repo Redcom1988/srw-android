@@ -4,13 +4,21 @@ import android.Manifest
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -27,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -40,6 +49,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +67,8 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.rememberAsyncImagePainter
 import com.redcom1988.srw.util.rememberPermissionState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -76,14 +88,17 @@ object CameraScreen : Screen {
         val uploadState by screenModel.uploadState.collectAsState()
 
         LaunchedEffect(uploadState) {
-            when (uploadState) {
+            when (val state = uploadState) {
                 is CameraScreenModel.UploadState.Success -> {
                     screenModel.resetUploadState()
                     navigator.pop()
-                    // TODO: Show success message or navigate to submission detail
                 }
                 is CameraScreenModel.UploadState.Error -> {
-                    // TODO: Show error message
+                    Toast.makeText(
+                        context,
+                        "Upload failed: ${state.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                     screenModel.resetUploadState()
                 }
                 else -> {}
@@ -111,11 +126,14 @@ private fun CameraScreenContent(
     onNavigateUp: () -> Unit,
     onSubmit: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val navigator = LocalNavigator.currentOrThrow
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showBackDialog by remember { mutableStateOf(false) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var showCameraFlash by remember { mutableStateOf(false) }
+    var isCapturing by remember { mutableStateOf(false) }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     LaunchedEffect(Unit) {
@@ -141,6 +159,19 @@ private fun CameraScreenContent(
                 }
             )
 
+            // Camera flash animation
+            AnimatedVisibility(
+                visible = showCameraFlash,
+                enter = fadeIn(tween(100, easing = FastOutSlowInEasing)),
+                exit = fadeOut(tween(100, easing = FastOutLinearInEasing))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                )
+            }
+
             // Loading overlay during upload
             if (uploadState is CameraScreenModel.UploadState.Loading) {
                 Box(
@@ -149,7 +180,7 @@ private fun CameraScreenContent(
                         .background(Color.Black.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    androidx.compose.material3.CircularProgressIndicator(
+                    CircularProgressIndicator(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -160,6 +191,7 @@ private fun CameraScreenContent(
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding(),
                 capturedImages = capturedImages,
+                isCapturing = isCapturing,
                 onViewImages = {
                     navigator.push(
                         CapturedImagesPreviewScreen(
@@ -169,15 +201,32 @@ private fun CameraScreenContent(
                     )
                 },
                 onCaptureImage = {
-                    imageCapture?.let { capture ->
-                        captureImage(
-                            context = context,
-                            imageCapture = capture,
-                            onImageCaptured = onAddImage,
-                            onError = { exception ->
-                                Log.e("CameraScreen", "Camera error", exception)
-                            }
-                        )
+                    if (!isCapturing) {
+                        isCapturing = true
+                        showCameraFlash = true
+                        imageCapture?.let { capture ->
+                            captureImage(
+                                context = context,
+                                imageCapture = capture,
+                                onImageCaptured = { uri ->
+                                    onAddImage(uri)
+                                    showCameraFlash = false
+                                    scope.launch {
+                                        delay(500)
+                                        isCapturing = false
+                                    }
+                                },
+                                onError = {
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to capture image",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    showCameraFlash = false
+                                    isCapturing = false
+                                }
+                            )
+                        }
                     }
                 },
                 onSubmit = {
@@ -270,7 +319,10 @@ private fun CameraPreview(
     val lifecycleOwner = LocalLifecycleOwner.current
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     val previewView = remember { PreviewView(context) }
-    val imageCapture = remember { ImageCapture.Builder().build() }
+    val imageCapture = remember { ImageCapture.Builder()
+        .setCaptureMode(CAPTURE_MODE_MINIMIZE_LATENCY)
+        .build()
+    }
 
     LaunchedEffect(lensFacing) {
         val cameraProvider = context.getCameraProvider()
@@ -306,7 +358,7 @@ private fun CameraPreview(
 @Composable
 private fun CameraBottomBar(
     modifier: Modifier = Modifier,
-    capturedImages: List<Uri>,
+    capturedImages: List<Uri>, isCapturing: Boolean = false,
     onViewImages: () -> Unit,
     onCaptureImage: () -> Unit,
     onSubmit: () -> Unit

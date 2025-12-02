@@ -1,5 +1,6 @@
 package com.redcom1988.srw.screens.homescreen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +57,7 @@ import com.redcom1988.srw.components.SubmissionCard
 import com.redcom1988.srw.components.SubmissionDetailBottomSheet
 import com.redcom1988.srw.screens.camerascreen.CameraScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
+import com.redcom1988.srw.screens.pointsscreen.PointsScreen
 import com.redcom1988.srw.screens.submissionsscreen.SubmissionsScreen
 
 object HomeScreen : Screen {
@@ -65,6 +67,7 @@ object HomeScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val context = androidx.compose.ui.platform.LocalContext.current
         val screenModel = rememberScreenModel { HomeScreenModel() }
         val logoutState by screenModel.logoutState.collectAsState()
         val profileState by screenModel.profileState.collectAsState()
@@ -76,23 +79,51 @@ object HomeScreen : Screen {
         }
 
         LaunchedEffect(logoutState) {
-            when (logoutState) {
+            when (val state = logoutState) {
                 is HomeScreenModel.LogoutState.Success -> {
                     screenModel.resetState()
                     navigator.replaceAll(LoginScreen)
                 }
                 is HomeScreenModel.LogoutState.Error -> {
-                    // TODO: Show error toast
+                    Toast.makeText(
+                        context,
+                        "Logout failed: ${state.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    screenModel.resetState()
                 }
                 else -> {}
+            }
+        }
+
+        LaunchedEffect(profileState) {
+            if (profileState is HomeScreenModel.ProfileState.Error) {
+                val errorMessage = (profileState as HomeScreenModel.ProfileState.Error).message
+                Toast.makeText(
+                    context,
+                    "Failed to load profile: $errorMessage",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+
+        LaunchedEffect(submissionsState) {
+            if (submissionsState is HomeScreenModel.SubmissionsState.Error) {
+                val errorMessage = (submissionsState as HomeScreenModel.SubmissionsState.Error).message
+                Toast.makeText(
+                    context,
+                    "Failed to load submissions: $errorMessage",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
 
         HomeScreenContent(
             profileState = profileState,
             submissionsState = submissionsState,
-            onClickViewAll = { navigator.push(SubmissionsScreen) },
             onClickLogout = screenModel::handleLogout,
+            onClickViewAll = { navigator.push(SubmissionsScreen) },
+            onClickLedger = { navigator.push(PointsScreen) },
             onClickUpload = { navigator.push(CameraScreen) },
             onRefresh = {
                 screenModel.loadProfile()
