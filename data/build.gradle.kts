@@ -59,4 +59,7 @@ dependencies {
 
     implementation(project(":core"))
     implementation(project(":domain"))
+
+    // Paging 3
+    implementation(libs.androidx.paging.runtime)
 }

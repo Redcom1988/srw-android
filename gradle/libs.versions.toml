@@ -28,6 +28,8 @@ chucker = "4.2.0"
 reorderable = "3.0.0"
 uiUnit = "1.9.4"
 camerax = "1.4.1"
+pagingruntime = "3.3.6"
+pagingcompose = "3.4.0-alpha04"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -88,6 +90,9 @@ androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+
+androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "pagingruntime"}
+androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingcompose"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

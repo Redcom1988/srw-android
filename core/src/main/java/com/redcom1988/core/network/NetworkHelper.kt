@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import okhttp3.Cache
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.brotli.BrotliInterceptor
 import okhttp3.logging.HttpLoggingInterceptor
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit
 class NetworkHelper(
     private val context: Context,
     private val isDebugBuild: Boolean,
+    private val additionalInterceptors: List<Interceptor> = emptyList()
 ) {
 
     private val connectivityManager = context
@@ -44,6 +46,11 @@ class NetworkHelper(
             .addInterceptor(UncaughtExceptionInterceptor())
             .addNetworkInterceptor(IgnoreGzipInterceptor())
             .addNetworkInterceptor(BrotliInterceptor)
+
+        // Add additional interceptors (like auth interceptor)
+        additionalInterceptors.forEach { interceptor ->
+            builder.addInterceptor(interceptor)
+        }
 
         if (isDebugBuild) {
             val httpLoggingInterceptor = HttpLoggingInterceptor().apply {
