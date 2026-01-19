@@ -7,6 +7,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import com.redcom1988.core.util.inject
 import com.redcom1988.domain.submission.interactor.UploadSubmission
 import com.redcom1988.domain.submission.model.Submission
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,7 +47,7 @@ class CameraScreenModel(
     }
 
     fun submitImages(context: Context) {
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             _uploadState.value = UploadState.Loading
 
             try {

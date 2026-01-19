@@ -2,7 +2,11 @@ package com.redcom1988.data.remote.source
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.redcom1988.core.network.parseAs
 import com.redcom1988.data.remote.SRWApi
+import com.redcom1988.data.remote.model.BaseResponse
+import com.redcom1988.data.remote.model.PaginatedResponse
+import com.redcom1988.data.remote.model.submission.SubmissionResponse
 import com.redcom1988.data.remote.model.submission.toDomain
 import com.redcom1988.domain.submission.model.Submission
 import kotlin.time.ExperimentalTime
@@ -18,18 +22,17 @@ class SubmissionsPagingSource(
             val pageSize = params.loadSize
 
             val response = api.getSubmissions(page = page, pageSize = pageSize)
+            val data = response.parseAs<BaseResponse<PaginatedResponse<SubmissionResponse>> >()
 
-            if (response.error != null) {
-                return LoadResult.Error(Exception(response.error))
-            }
-            if (response.success != true) {
-                return LoadResult.Error(Exception(response.message ?: "Unknown error"))
+            if (data.success == false) {
+                return LoadResult.Error(Exception(data.message ?: "Failed to load submissions"))
             }
 
-            val data = response.data ?: return LoadResult.Error(Exception("No data received"))
-            val submissions = data.data.map { submissionResponse ->
-                submissionResponse.toDomain() }
-            val totalPages = data.totalPages
+            val paginatedData = data.data ?: return LoadResult.Error(Exception("No data received"))
+            val submissions = paginatedData.data.map { submissionResponse ->
+                submissionResponse.toDomain()
+            }
+            val totalPages = paginatedData.totalPages
 
             LoadResult.Page(
                 data = submissions,

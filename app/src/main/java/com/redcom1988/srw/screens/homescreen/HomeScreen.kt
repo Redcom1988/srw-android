@@ -1,7 +1,6 @@
 package com.redcom1988.srw.screens.homescreen
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,22 +42,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.redcom1988.domain.submission.model.Submission
 import com.redcom1988.srw.components.AppBar
 import com.redcom1988.srw.components.SubmissionCard
-import com.redcom1988.srw.components.SubmissionDetailBottomSheet
+import com.redcom1988.srw.components.UniversalDialog
 import com.redcom1988.srw.screens.camerascreen.CameraScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
 import com.redcom1988.srw.screens.pointsscreen.PointsScreen
+import com.redcom1988.srw.screens.submissiondetail.SubmissionDetailScreen
 import com.redcom1988.srw.screens.submissionsscreen.SubmissionsScreen
 
 object HomeScreen : Screen {
@@ -144,16 +143,26 @@ private fun HomeScreenContent(
     onClickUpload: () -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
-    var selectedSubmission by remember { mutableStateOf<Submission?>(null) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    val navigator = LocalNavigator.currentOrThrow
 
-    selectedSubmission?.let { submission ->
-        SubmissionDetailBottomSheet(
-            submission = submission,
-            onDismiss = { selectedSubmission = null }
+    if (showLogoutDialog) {
+        UniversalDialog(
+            title = "Logout",
+            message = "Are you sure you want to logout?",
+            icon = Icons.AutoMirrored.Filled.Logout,
+            confirmText = "Logout",
+            confirmColor = MaterialTheme.colorScheme.error,
+            dismissText = "Cancel",
+            onConfirm = {
+                showLogoutDialog = false
+                onClickLogout()
+            },
+            onDismiss = { showLogoutDialog = false }
         )
     }
 
-    val isLoading = profileState is HomeScreenModel.ProfileState.Loading ||
+    val isRefreshing = profileState is HomeScreenModel.ProfileState.Loading ||
                     submissionsState is HomeScreenModel.SubmissionsState.Loading
 
     Scaffold(
@@ -168,16 +177,7 @@ private fun HomeScreenContent(
                 }, // TODO change to app icon
                 actions = {
                     IconButton(
-                        onClick = onRefresh,
-                        enabled = !isLoading
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null
-                        )
-                    }
-                    IconButton(
-                        onClick = onClickLogout,
+                        onClick = { showLogoutDialog = true },
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -185,113 +185,93 @@ private fun HomeScreenContent(
                         )
                     }
                 },
+                shadowElevation = 4.dp
             )
         }
     ) { contentPadding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(contentPadding)
         ) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Text(
-                            text = "Loading...", // TODO String Resource
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        when (profileState) {
-                    is HomeScreenModel.ProfileState.Success -> {
-                        BalanceCard(
-                            onClickLedger = onClickLedger,
-                            name = profileState.client.name,
-                            points = profileState.client.totalPoints.toString(),
-                        )
-                    }
-                    is HomeScreenModel.ProfileState.Error -> {
-                        // Show error card
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(
+                    when (profileState) {
+                        is HomeScreenModel.ProfileState.Success -> {
+                            BalanceCard(
+                                onClickLedger = onClickLedger,
+                                name = profileState.client.name,
+                                points = profileState.client.totalPoints.toString(),
+                            )
+                        }
+                        is HomeScreenModel.ProfileState.Error -> {
+                            // Show error card
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .padding(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text(
-                                    text = "Failed to load profile", // TODO String Resource
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = profileState.message,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .navigationBarsPadding(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Failed to load profile", // TODO String Resource
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = profileState.message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                                    )
+                                }
                             }
                         }
+                        else -> {}
                     }
-                    else -> {}
-                }
 
                     RecentSubmissionsSection(
                         submissionsState = submissionsState,
                         onClickViewAll = onClickViewAll,
-                        onSubmissionClick = { submission ->
-                            selectedSubmission = submission
-                        }
-                    )
-                    }
-
-                    ExtendedFloatingActionButton(
-                        text = {
-                            Text(
-                                text = "Create", // TODO String Resource
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = null
-                            )
-                        },
-                        onClick = onClickUpload,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(16.dp),
-                        containerColor = MaterialTheme.colorScheme.primary
+                        navigator = navigator
                     )
                 }
+
+                ExtendedFloatingActionButton(
+                    text = {
+                        Text(
+                            text = "Create", // TODO String Resource
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = onClickUpload,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
@@ -309,33 +289,28 @@ private fun BalanceCard(
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.secondary
-                        )
-                    )
-                )
                 .padding(24.dp)
         ) {
             Column {
                 Text(
                     text = "Account Holder", // TODO String Resource
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     letterSpacing = 2.sp
                 )
 
@@ -345,7 +320,7 @@ private fun BalanceCard(
                     Text(
                         text = "Available Balance", // TODO String Resource
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -358,12 +333,12 @@ private fun BalanceCard(
                                 text = points,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = " points", // TODO String Resource
                                 style = MaterialTheme.typography.titleSmall,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(start = 4.dp)
                             )
                         }
@@ -379,7 +354,7 @@ private fun BalanceCard(
 private fun RecentSubmissionsSection(
     submissionsState: HomeScreenModel.SubmissionsState,
     onClickViewAll: () -> Unit = {},
-    onSubmissionClick: (Submission) -> Unit = {}
+    navigator: Navigator
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
@@ -427,7 +402,7 @@ private fun RecentSubmissionsSection(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
+                                .navigationBarsPadding(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
@@ -456,7 +431,7 @@ private fun RecentSubmissionsSection(
                         submissionsState.submissions.forEach { submission ->
                             SubmissionCard(
                                 submission = submission,
-                                onClick = { onSubmissionClick(submission) }
+                                onClick = { navigator.push(SubmissionDetailScreen(submission)) }
                             )
                         }
                     }
@@ -474,7 +449,7 @@ private fun RecentSubmissionsSection(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(32.dp),
+                            .navigationBarsPadding(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(

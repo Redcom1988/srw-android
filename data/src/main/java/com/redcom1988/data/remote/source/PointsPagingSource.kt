@@ -2,7 +2,11 @@ package com.redcom1988.data.remote.source
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.redcom1988.core.network.parseAs
 import com.redcom1988.data.remote.SRWApi
+import com.redcom1988.data.remote.model.BaseResponse
+import com.redcom1988.data.remote.model.PaginatedResponse
+import com.redcom1988.data.remote.model.point.PointResponse
 import com.redcom1988.data.remote.model.point.toDomain
 import com.redcom1988.domain.point.model.Point
 import kotlin.time.ExperimentalTime
@@ -18,18 +22,17 @@ class PointsPagingSource(
             val pageSize = params.loadSize
 
             val response = api.getClientPoints(page = page, pageSize = pageSize)
+            val data = response.parseAs<BaseResponse<PaginatedResponse<PointResponse>>>()
 
-            if (response.error != null) {
-                return LoadResult.Error(Exception(response.error))
-            }
-            if (response.success != true) {
-                return LoadResult.Error(Exception(response.message ?: "Unknown error"))
+            if (data.success == false) {
+                return LoadResult.Error(Exception(data.message ?: "Failed to load points"))
             }
 
-            val data = response.data ?: return LoadResult.Error(Exception("No data recieved"))
-            val points = data.data.map { pointResponse ->
-                pointResponse.toDomain() }
-            val totalPages = data.totalPages
+            val paginatedData = data.data ?: return LoadResult.Error(Exception("No data received"))
+            val points = paginatedData.data.map { pointResponse ->
+                pointResponse.toDomain()
+            }
+            val totalPages = paginatedData.totalPages
 
             LoadResult.Page(
                 data = points,

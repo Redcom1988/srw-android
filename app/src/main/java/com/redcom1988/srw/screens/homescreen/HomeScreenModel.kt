@@ -8,6 +8,7 @@ import com.redcom1988.domain.client.interactor.GetClientProfile
 import com.redcom1988.domain.client.model.Client
 import com.redcom1988.domain.submission.interactor.GetRecentSubmissions
 import com.redcom1988.domain.submission.model.Submission
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +35,7 @@ class HomeScreenModel(
     }
 
     fun loadProfile() {
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             _profileState.value = ProfileState.Loading
 
             when (val result = getClientProfile.await()) {
@@ -51,7 +52,7 @@ class HomeScreenModel(
     }
 
     fun loadRecentSubmissions() {
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             _submissionsState.value = SubmissionsState.Loading
 
             when (val result = getRecentSubmissions.await(limit = 5)) {
@@ -66,7 +67,7 @@ class HomeScreenModel(
     }
 
     fun handleLogout() {
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             _logoutState.value = LogoutState.Loading
 
             when (val result = logout.await()) {

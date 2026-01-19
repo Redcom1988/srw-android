@@ -17,7 +17,7 @@ data class SubmissionResponse(
     val adminNotes: String?,
     val pickupLocation: String?,
     val totalPoints: Int?,
-    val imageCount: Int,
+    val images: List<SubmissionImageResponse>?,
     val createdAt: Instant,
     val updatedAt: Instant,
     val processedAt: Instant?,

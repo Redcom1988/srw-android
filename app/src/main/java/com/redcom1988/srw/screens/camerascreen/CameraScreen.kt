@@ -13,14 +13,20 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,7 +39,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,8 +46,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,6 +58,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +72,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil3.compose.rememberAsyncImagePainter
+import com.redcom1988.srw.components.UniversalDialog
 import com.redcom1988.srw.util.rememberPermissionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -86,11 +93,14 @@ object CameraScreen : Screen {
         val screenModel = rememberScreenModel { CameraScreenModel() }
         val capturedImages by screenModel.capturedImages.collectAsState()
         val uploadState by screenModel.uploadState.collectAsState()
+        var isUploading by remember { mutableStateOf(false) }
+
 
         LaunchedEffect(uploadState) {
             when (val state = uploadState) {
                 is CameraScreenModel.UploadState.Success -> {
                     screenModel.resetUploadState()
+                    isUploading = false
                     navigator.pop()
                 }
                 is CameraScreenModel.UploadState.Error -> {
@@ -99,6 +109,7 @@ object CameraScreen : Screen {
                         "Upload failed: ${state.message}",
                         Toast.LENGTH_LONG
                     ).show()
+                    Log.e("ASD", "Upload failed: ${state.message}")
                     screenModel.resetUploadState()
                 }
                 else -> {}
@@ -108,10 +119,14 @@ object CameraScreen : Screen {
         CameraScreenContent(
             capturedImages = capturedImages,
             uploadState = uploadState,
+            isUploading = isUploading,
             onAddImage = screenModel::addImage,
             onUpdateImages = screenModel::updateImages,
             onNavigateUp = { navigator.pop() },
-            onSubmit = { screenModel.submitImages(context) }
+            onSubmit = {
+                screenModel.submitImages(context)
+                isUploading = true
+            },
         )
     }
 }
@@ -121,6 +136,7 @@ object CameraScreen : Screen {
 private fun CameraScreenContent(
     capturedImages: List<Uri>,
     uploadState: CameraScreenModel.UploadState,
+    isUploading: Boolean,
     onAddImage: (Uri) -> Unit,
     onUpdateImages: (List<Uri>) -> Unit,
     onNavigateUp: () -> Unit,
@@ -172,26 +188,11 @@ private fun CameraScreenContent(
                 )
             }
 
-            // Loading overlay during upload
-            if (uploadState is CameraScreenModel.UploadState.Loading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
 
-            CameraBottomBar(
+            AltCameraBottomBar(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding(),
+                    .align(Alignment.BottomCenter),
                 capturedImages = capturedImages,
-                isCapturing = isCapturing,
                 onViewImages = {
                     navigator.push(
                         CapturedImagesPreviewScreen(
@@ -212,7 +213,7 @@ private fun CameraScreenContent(
                                     onAddImage(uri)
                                     showCameraFlash = false
                                     scope.launch {
-                                        delay(500)
+                                        delay(300)
                                         isCapturing = false
                                     }
                                 },
@@ -231,7 +232,8 @@ private fun CameraScreenContent(
                 },
                 onSubmit = {
                     showConfirmDialog = true
-                }
+                },
+                isUploading = isUploading
             )
         }
 
@@ -261,55 +263,52 @@ private fun CameraScreenContent(
                 )
             }
         }
+
+        // Loading overlay during upload - covers entire screen including bars
+        if (uploadState is CameraScreenModel.UploadState.Loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 
     if (showBackDialog) {
-        AlertDialog(
-            onDismissRequest = { showBackDialog = false },
-            title = { Text(text = "Cancel Submission?") }, // TODO String Resource
-            text = { Text(text = "Are you sure you want to cancel your submission?") }, // TODO String Resource
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showBackDialog = false
-                        onNavigateUp()
-                    },
-                    content = { Text("Yes") } // TODO String Resource
-                )
+        UniversalDialog(
+            title = "Cancel Submission?",
+            message = "Are you sure you want to cancel your submission?",
+            confirmText = "Yes",
+            dismissText = "Cancel",
+            onConfirm = {
+                showBackDialog = false
+                onNavigateUp()
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { showBackDialog = false },
-                    content = { Text("Cancel") } // TODO String Resource
-                )
-            }
+            onDismiss = { showBackDialog = false }
         )
     }
 
     // Confirmation dialog
     if (showConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
-            title = { Text(text = "Finish Submission?") }, // TODO String Resource
-            text = { Text(text = "Are you sure you want to finish and submit ${capturedImages.size} image(s)?") }, // TODO String Resource
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showConfirmDialog = false
-                        onSubmit()
-                    },
-                    content = { Text("Yes") } // TODO String Resource
-                )
+        UniversalDialog(
+            title = "Finish Submission?",
+            message = "Are you sure you want to finish and submit ${capturedImages.size} image(s)?",
+            confirmText = "Yes",
+            dismissText = "Cancel",
+            onConfirm = {
+                showConfirmDialog = false
+                onSubmit()
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { showConfirmDialog = false },
-                    content = { Text("Cancel") } // TODO String Resource
-                )
-            }
+            onDismiss = { showConfirmDialog = false }
         )
     }
 }
+
 
 @Composable
 private fun CameraPreview(
@@ -356,9 +355,133 @@ private fun CameraPreview(
 }
 
 @Composable
+private fun AltCameraBottomBar(
+    modifier: Modifier = Modifier,
+    isUploading: Boolean = true,
+    capturedImages: List<Uri>,
+    onViewImages: () -> Unit,
+    onCaptureImage: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    val hasImages = capturedImages.isNotEmpty()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(0.3f))
+            .padding(32.dp)
+            .navigationBarsPadding()
+    ) {
+        if (hasImages) {
+            // Preview thumbnail - left side
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 8.dp)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable(
+                            onClick = onViewImages,
+                            enabled = !isUploading,
+                        ),
+                ) {
+                    AnimatedContent(
+                        targetState = capturedImages.last(),
+                        transitionSpec = {
+                            fadeIn(
+                                animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            ) togetherWith fadeOut(
+                                animationSpec = tween(200, easing = FastOutLinearInEasing)
+                            ) using SizeTransform { _, _ ->
+                                tween(300, easing = FastOutSlowInEasing)
+                            }
+                        },
+                    ) { targetUri ->
+                        Image(
+                            painter = rememberAsyncImagePainter(targetUri),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                AnimatedContent(
+                    targetState = capturedImages.size,
+                    transitionSpec = {
+                        (fadeIn(tween(200)) +
+                                scaleIn(
+                                    initialScale = 0.8f,
+                                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                                )) togetherWith
+                                (fadeOut(tween(100)) +
+                                        scaleOut(
+                                            targetScale = 1.2f,
+                                            animationSpec = tween(100, easing = FastOutLinearInEasing)
+                                        ))
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 2.dp),
+                ) { count ->
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        content = {
+                            Text(
+                                text = count.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    )
+                }
+            }
+
+            // Submit button - right side
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .clickable(
+                        onClick = onSubmit,
+                        enabled = !isUploading,
+                    ),
+                color = Color.Black.copy(0.1f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.DoneAll,
+                        tint = Color.White,
+                        contentDescription = null
+                    )
+                }
+            }
+        }
+
+        // Capture button - ALWAYS visible (outside if block)
+        Surface(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(72.dp)
+                .clip(CircleShape)
+                .clickable(
+                    onClick = onCaptureImage,
+                    enabled = !isUploading,
+                ),
+            color = Color.White,
+        ) {}
+    }
+}
+
+@Composable
 private fun CameraBottomBar(
     modifier: Modifier = Modifier,
-    capturedImages: List<Uri>, isCapturing: Boolean = false,
+    isEnabled: Boolean = true,
+    capturedImages: List<Uri>,
     onViewImages: () -> Unit,
     onCaptureImage: () -> Unit,
     onSubmit: () -> Unit
@@ -369,6 +492,7 @@ private fun CameraBottomBar(
             .fillMaxWidth()
             .background(Color.Black.copy(alpha = 0.3f))
             .padding(32.dp)
+            .navigationBarsPadding()
     ) {
         if (hasImages) {
             Box(
@@ -382,28 +506,59 @@ private fun CameraBottomBar(
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(capturedImages.last()),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    AnimatedContent(
+                        targetState = capturedImages.last(),
+                        transitionSpec = {
+                            fadeIn(
+                                animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            ) togetherWith fadeOut(
+                                animationSpec = tween(200, easing = FastOutLinearInEasing)
+                            ) using SizeTransform { _, _ ->
+                                tween(300, easing = FastOutSlowInEasing)
+                            }
+                        },
+                        label = "thumbnail_transition"
+                    ) { targetUri ->
+                        Image(
+                            painter = rememberAsyncImagePainter(targetUri),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
 
-                Badge(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                AnimatedContent(
+                    targetState = capturedImages.size,
+                    transitionSpec = {
+                        (fadeIn(tween(200)) +
+                         scaleIn(
+                             initialScale = 0.8f,
+                             animationSpec = tween(200, easing = FastOutSlowInEasing)
+                         )) togetherWith
+                        (fadeOut(tween(100)) +
+                         scaleOut(
+                             targetScale = 1.2f,
+                             animationSpec = tween(100, easing = FastOutLinearInEasing)
+                         ))
+                    },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(end = 2.dp),
-                    content =  {
-                        Text(
-                            text = capturedImages.size.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                )
+                    label = "badge_transition"
+                ) { count ->
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        content = {
+                            Text(
+                                text = count.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    )
+                }
             }
 
             FloatingActionButton(
@@ -412,7 +567,7 @@ private fun CameraBottomBar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .size(48.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = Color.Transparent,
                 content = {
                     Icon(
                         imageVector = Icons.Default.DoneAll,

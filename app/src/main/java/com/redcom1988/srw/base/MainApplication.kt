@@ -2,6 +2,11 @@ package com.redcom1988.srw.base
 
 import android.app.Application
 import android.util.Log
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.redcom1988.srw.di.coreModule
 import com.redcom1988.srw.di.dataModule
 import com.redcom1988.srw.di.domainModule
@@ -11,7 +16,7 @@ import org.koin.core.logger.Level
 import org.koin.core.logger.Logger
 import org.koin.core.logger.MESSAGE
 
-class MainApplication: Application() {
+class MainApplication: Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         startKoin {
@@ -37,5 +42,14 @@ class MainApplication: Application() {
                 )
             )
         }
+    }
+
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
+            .components {
+                add(OkHttpNetworkFetcherFactory())
+            }
+            .crossfade(true)
+            .build()
     }
 }

@@ -19,7 +19,7 @@ import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
-import com.redcom1988.domain.preference.ApplicationPreference
+import com.redcom1988.core.network.NetworkPreference
 import com.redcom1988.srw.screens.homescreen.HomeScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
 import com.redcom1988.srw.theme.AppTheme
@@ -32,7 +32,7 @@ import soup.compose.material.motion.animation.rememberSlideDistance
 
 class MainActivity : AppCompatActivity() {
 
-    private val applicationPreference: ApplicationPreference by inject()
+    private val networkPreference: NetworkPreference by inject()
 
     private var isReady = false
     private var initialScreen: Screen = LoginScreen
@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handlePreDraw() {
-        val accessToken = applicationPreference.accessToken().get()
+        val accessToken = networkPreference.accessToken().get()
         initialScreen = if (accessToken.isEmpty()) { LoginScreen } else { HomeScreen }
         isReady = true
     }

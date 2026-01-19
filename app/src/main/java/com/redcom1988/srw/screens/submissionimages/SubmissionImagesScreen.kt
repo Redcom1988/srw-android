@@ -1,33 +1,34 @@
-package com.redcom1988.srw.screens.camerascreen
+package com.redcom1988.srw.screens.submissionimages
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.redcom1988.domain.submission.model.Submission
 import com.redcom1988.srw.components.ImagePagerViewer
 
-data class CapturedImagesPreviewScreen(
-    val capturedImages: List<Uri>,
-    val onImagesUpdated: (List<Uri>) -> Unit
+/**
+ * Screen for viewing submission images in a pager
+ */
+data class SubmissionImagesScreen(
+    val submission: Submission,
+    val initialPage: Int = 0
 ) : Screen {
 
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val imageUrls = submission.images?.map { it.url } ?: emptyList()
 
         BackHandler(onBack = { navigator.pop() })
 
         ImagePagerViewer(
-            images = capturedImages.map { it.toString() },
-            title = "Captured Images",
+            images = imageUrls,
+            initialPage = initialPage.coerceIn(0, (imageUrls.size - 1).coerceAtLeast(0)),
+            title = "Submission #${submission.id}",
             onNavigateUp = { navigator.pop() },
-            canDelete = true,
-            onImagesUpdated = { updatedImages ->
-                onImagesUpdated(updatedImages.map { Uri.parse(it) })
-            }
+            canDelete = false
         )
     }
 }
-
