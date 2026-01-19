@@ -62,4 +62,7 @@ dependencies {
 
     // Paging 3
     implementation(libs.androidx.paging.runtime)
+
+    debugImplementation(libs.chucker)
+    releaseImplementation(libs.chucker.release)
 }

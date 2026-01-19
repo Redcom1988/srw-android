@@ -4,6 +4,7 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.redcom1988.core.util.inject
 import com.redcom1988.domain.auth.interactor.Login
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,7 @@ class LoginScreenModel(
     val state: StateFlow<LoginState> = _state.asStateFlow()
 
     fun handleNfcTag(nfcNumber: String) {
-        screenModelScope.launch {
+        screenModelScope.launch(Dispatchers.IO) {
             _state.value = LoginState.Loading
 
             when (val result = login.await(nfcNumber)) {
@@ -25,9 +26,7 @@ class LoginScreenModel(
                     _state.value = LoginState.Success
                 }
                 is Login.Result.Error -> {
-                    _state.value = LoginState.Error(
-                        result.error.message ?: "Unknown error occurred"
-                    )
+                    _state.value = LoginState.Error(result.message)
                 }
             }
         }
