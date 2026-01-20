@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.material.icons)
     implementation(libs.material.motion.compose.core)
     implementation(libs.coil.compose)
+    implementation(libs.coil.okhttp)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.reorderable)
 
