@@ -1,5 +1,6 @@
 package com.redcom1988.domain.submission.model
 
+import java.io.Serializable
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -9,4 +10,4 @@ data class SubmissionImage(
     val url: String,
     val metadata: List<SubmissionImageMetadata>?,
     val createdAt: Instant
-)
+) : Serializable

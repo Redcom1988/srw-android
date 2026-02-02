@@ -5,9 +5,10 @@ import android.util.Log
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.okhttp.OkHttpNetworkFetcherFactory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.redcom1988.core.network.NetworkHelper
+import okhttp3.OkHttpClient
 import com.redcom1988.srw.di.coreModule
 import com.redcom1988.srw.di.dataModule
 import com.redcom1988.srw.di.domainModule
@@ -22,6 +23,12 @@ import org.koin.core.qualifier.named
 
 class MainApplication: Application(), SingletonImageLoader.Factory, KoinComponent {
     private val networkHelper: NetworkHelper by inject(named("authenticated"))
+
+    private val imageLoaderClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .cache(networkHelper.client.cache)
+            .build()
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -53,7 +60,7 @@ class MainApplication: Application(), SingletonImageLoader.Factory, KoinComponen
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(context)
             .components {
-                add(OkHttpNetworkFetcherFactory(networkHelper.client))
+                add(OkHttpNetworkFetcherFactory(imageLoaderClient))
             }
             .crossfade(true)
             .build()

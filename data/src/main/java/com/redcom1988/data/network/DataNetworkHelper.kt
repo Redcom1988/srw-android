@@ -8,6 +8,7 @@ import com.redcom1988.core.network.interceptor.AuthInterceptor
 import com.redcom1988.core.network.interceptor.IgnoreGzipInterceptor
 import com.redcom1988.core.network.interceptor.UncaughtExceptionInterceptor
 import okhttp3.Cache
+import okhttp3.CookieJar
 import okhttp3.OkHttpClient
 import okhttp3.brotli.BrotliInterceptor
 import okhttp3.logging.HttpLoggingInterceptor
