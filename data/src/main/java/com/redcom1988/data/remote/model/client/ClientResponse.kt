@@ -8,5 +8,7 @@ data class ClientResponse(
     val nfc: String,
     val name: String,
     val address: String,
+    val latitude: Float,
+    val longitude: Float,
     val totalPoints: Int
 )

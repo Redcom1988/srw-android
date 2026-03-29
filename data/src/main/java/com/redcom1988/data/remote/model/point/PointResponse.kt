@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PointResponse(
     val id: Int,
-    val submissionId: Int,
+    val submissionId: Int? = null,
     val amount: Int,
     val createdAt: String,
 )

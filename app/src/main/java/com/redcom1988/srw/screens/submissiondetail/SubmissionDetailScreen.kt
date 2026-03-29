@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -152,6 +153,15 @@ private fun SubmissionDetailScreenContent(
                     icon = Icons.Default.Person,
                     label = "Assigned Agent",
                     value = submission.agentName
+                )
+            }
+
+            // Pickup location
+            if (!submission.submissionAddress.isNullOrBlank()) {
+                InfoRow(
+                    icon = Icons.Default.LocationOn,
+                    label = "Pickup Location",
+                    value = submission.submissionAddress
                 )
             }
 

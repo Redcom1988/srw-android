@@ -23,4 +23,25 @@ class ClientRepositoryImpl(
         val clientData = data.data ?: throw Exception("No data received")
         return clientData.toDomain()
     }
+
+    override suspend fun updateAddress(
+        address: String,
+        latitude: Float,
+        longitude: Float
+    ): Client {
+        val response = api.updateAddress(
+            address = address,
+            latitude = latitude,
+            longitude = longitude
+        )
+
+        val data = response.parseAs<BaseResponse<ClientResponse>>()
+
+        if (data.success == false) {
+            throw Exception(data.message ?: "Failed to update address")
+        }
+
+        val clientData = data.data ?: throw Exception("No data received")
+        return clientData.toDomain()
+    }
 }

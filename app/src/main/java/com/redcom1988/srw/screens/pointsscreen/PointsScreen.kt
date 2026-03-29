@@ -188,7 +188,7 @@ private fun PointCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "Submission #${point.submissionId}",
+                    text = point.submissionId?.let { "Submission #$it" } ?: "Point Exchange",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

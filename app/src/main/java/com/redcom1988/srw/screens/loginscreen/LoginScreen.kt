@@ -47,6 +47,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.redcom1988.core.util.extractNfcNumber
 import com.redcom1988.srw.screens.homescreen.HomeScreen
+import com.redcom1988.srw.screens.locationpicker.LocationPickerScreen
 import kotlinx.coroutines.launch
 
 object LoginScreen : Screen {
@@ -65,6 +66,9 @@ object LoginScreen : Screen {
             onResetState = screenModel::resetState,
             onLoginSuccess = {
                 navigator.replaceAll(HomeScreen)
+            },
+            onNavigateToOnboarding = {
+                navigator.replaceAll(LocationPickerScreen)
             }
         )
     }
@@ -76,7 +80,8 @@ private fun LoginScreenContent(
     state: LoginScreenModel.LoginState,
     onHandleNfcTag: (String) -> Unit,
     onResetState: () -> Unit,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateToOnboarding: () -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -119,6 +124,9 @@ private fun LoginScreenContent(
         when (state) {
             is LoginScreenModel.LoginState.Success -> {
                 onLoginSuccess()
+            }
+            is LoginScreenModel.LoginState.NeedsOnboarding -> {
+                onNavigateToOnboarding()
             }
             is LoginScreenModel.LoginState.Error -> {
                 scope.launch {
@@ -223,7 +231,8 @@ private fun LoginScreenContent(
                     }
 
                     is LoginScreenModel.LoginState.Error,
-                    is LoginScreenModel.LoginState.Success -> {
+                    is LoginScreenModel.LoginState.Success,
+                    is LoginScreenModel.LoginState.NeedsOnboarding -> {
                     }
                 }
 

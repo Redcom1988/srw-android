@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 data class Point(
     val id: Int,
-    val submissionId: Int,
+    val submissionId: Int? = null,
     val amount: Int,
     val createdAt: LocalDateTime,
 )

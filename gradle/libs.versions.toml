@@ -31,6 +31,11 @@ uiUnit = "1.9.4"
 camerax = "1.4.1"
 pagingruntime = "3.3.6"
 pagingcompose = "3.4.0-alpha04"
+ui = "1.10.4"
+maps = "4.3.0"
+playServicesMaps = "19.0.0"
+playServicesLocation = "21.3.0"
+accompanist = "0.34.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -95,6 +100,12 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 
 androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "pagingruntime"}
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingcompose"}
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
+
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

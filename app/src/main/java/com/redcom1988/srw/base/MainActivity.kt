@@ -21,6 +21,7 @@ import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
 import com.redcom1988.core.network.NetworkPreference
 import com.redcom1988.srw.screens.homescreen.HomeScreen
+import com.redcom1988.srw.screens.locationpicker.LocationPickerScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
 import com.redcom1988.srw.theme.AppTheme
 import kotlinx.coroutines.channels.awaitClose
@@ -85,7 +86,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun handlePreDraw() {
         val accessToken = networkPreference.accessToken().get()
-        initialScreen = if (accessToken.isEmpty()) { LoginScreen } else { HomeScreen }
+        val onboardingComplete = networkPreference.onboardingComplete().get()
+        
+        initialScreen = when {
+            accessToken.isEmpty() -> LoginScreen
+            !onboardingComplete -> LocationPickerScreen
+            else -> HomeScreen
+        }
         isReady = true
     }
 

@@ -9,6 +9,8 @@ fun ClientResponse.toDomain(): Client {
         id = id,
         name = name,
         address = address,
+        latitude = latitude,
+        longitude = longitude,
         nfc = nfc,
         totalPoints = totalPoints
     )

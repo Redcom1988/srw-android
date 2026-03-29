@@ -7,6 +7,7 @@ import com.redcom1988.core.network.POST
 import com.redcom1988.core.network.await
 import com.redcom1988.core.network.json
 import com.redcom1988.data.remote.model.auth.AuthRequest
+import com.redcom1988.data.remote.model.client.AddressRequest
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -136,6 +137,27 @@ class SRWApi(
         return networkHelper.client.newCall(
             POST(
                 url = url,
+                body = requestBody
+            )
+        ).await()
+    }
+
+    suspend fun updateAddress(
+        address: String,
+        latitude: Float,
+        longitude: Float
+    ): Response {
+        val requestBody = json.encodeToString(
+    AddressRequest(
+                address = address,
+                latitude = latitude,
+                longitude = longitude
+            )
+        ).toRequestBody("application/json".toMediaType())
+
+        return networkHelper.client.newCall(
+            POST(
+                url = preference.baseUrl().get() + "/clients/profile/address",
                 body = requestBody
             )
         ).await()

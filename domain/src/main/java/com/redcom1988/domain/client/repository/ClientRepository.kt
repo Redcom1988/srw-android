@@ -6,5 +6,11 @@ import kotlinx.coroutines.flow.Flow
 interface ClientRepository {
 
     suspend fun fetchClientProfile(): Client
+    suspend fun updateAddress(
+        address: String,
+        latitude: Float,
+        longitude: Float
+    ): Client
+
 
 }

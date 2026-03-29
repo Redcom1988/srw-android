@@ -1,6 +1,7 @@
 package com.redcom1988.srw.screens.homescreen
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,16 +23,23 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +63,7 @@ import com.redcom1988.srw.components.AppBar
 import com.redcom1988.srw.components.SubmissionCard
 import com.redcom1988.srw.components.UniversalDialog
 import com.redcom1988.srw.screens.camerascreen.CameraScreen
+import com.redcom1988.srw.screens.locationpicker.LocationPickerScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
 import com.redcom1988.srw.screens.pointsscreen.PointsScreen
 import com.redcom1988.srw.screens.submissiondetail.SubmissionDetailScreen
@@ -66,7 +76,7 @@ object HomeScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val context = androidx.compose.ui.platform.LocalContext.current
+        val context = LocalContext.current
         val screenModel = rememberScreenModel { HomeScreenModel() }
         val logoutState by screenModel.logoutState.collectAsState()
         val profileState by screenModel.profileState.collectAsState()
@@ -122,7 +132,6 @@ object HomeScreen : Screen {
             submissionsState = submissionsState,
             onClickLogout = screenModel::handleLogout,
             onClickViewAll = { navigator.push(SubmissionsScreen) },
-            onClickLedger = { navigator.push(PointsScreen) },
             onClickUpload = { navigator.push(CameraScreen) },
             onRefresh = {
                 screenModel.loadProfile()
@@ -138,13 +147,48 @@ private fun HomeScreenContent(
     profileState: HomeScreenModel.ProfileState = HomeScreenModel.ProfileState.Idle,
     submissionsState: HomeScreenModel.SubmissionsState = HomeScreenModel.SubmissionsState.Loading,
     onClickLogout: () -> Unit = {},
-    onClickLedger: () -> Unit = {},
     onClickViewAll: () -> Unit = {},
     onClickUpload: () -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showClientOptionsSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
     val navigator = LocalNavigator.currentOrThrow
+
+    if (showClientOptionsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showClientOptionsSheet = false },
+            sheetState = sheetState
+        ) {
+            Column {
+                ListItem(
+                    headlineContent = { Text("Points History") },
+                    supportingContent = { Text("View your points transaction history") },
+                    leadingContent = {
+                        Icon(Icons.Default.History, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable {
+                        showClientOptionsSheet = false
+                        navigator.push(PointsScreen)
+                    }
+                )
+                HorizontalDivider()
+                ListItem(
+                    headlineContent = { Text("Change Address") },
+                    supportingContent = { Text("Update your pickup location") },
+                    leadingContent = {
+                        Icon(Icons.Default.LocationOn, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable {
+                        showClientOptionsSheet = false
+                        navigator.push(LocationPickerScreen)
+                    }
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
 
     if (showLogoutDialog) {
         UniversalDialog(
@@ -206,7 +250,7 @@ private fun HomeScreenContent(
                     when (profileState) {
                         is HomeScreenModel.ProfileState.Success -> {
                             BalanceCard(
-                                onClickLedger = onClickLedger,
+                                onClick = { showClientOptionsSheet = true },
                                 name = profileState.client.name,
                                 points = profileState.client.totalPoints.toString(),
                             )
@@ -279,12 +323,12 @@ private fun HomeScreenContent(
 
 @Composable
 private fun BalanceCard(
-    onClickLedger: () -> Unit,
+    onClick: () -> Unit,
     name: String,
     points: String,
 ) {
     Card(
-        onClick = onClickLedger,
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),

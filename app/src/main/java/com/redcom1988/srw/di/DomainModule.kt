@@ -9,6 +9,7 @@ import com.redcom1988.domain.auth.interactor.Logout
 import com.redcom1988.domain.auth.interactor.RefreshToken
 import com.redcom1988.domain.auth.repository.AuthRepository
 import com.redcom1988.domain.client.interactor.GetClientProfile
+import com.redcom1988.domain.client.interactor.UpdateAddress
 import com.redcom1988.domain.client.repository.ClientRepository
 import com.redcom1988.domain.point.interactor.GetProfilePoints
 import com.redcom1988.domain.point.repository.PointRepository
@@ -30,6 +31,7 @@ val domainModule = module {
 
     single<ClientRepository> { ClientRepositoryImpl(get()) }
     single { GetClientProfile(get()) }
+    single { UpdateAddress(get()) }
 
     single<PointRepository> { PointRepositoryImpl(get()) }
     single { GetProfilePoints(get()) }
