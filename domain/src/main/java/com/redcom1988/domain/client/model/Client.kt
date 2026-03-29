@@ -4,7 +4,10 @@ import java.time.LocalDateTime
 
 data class Client(
     val id: Int,
+    val nfc: String,
     val name: String,
-    val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime,
+    val address: String,
+    val latitude: Float,
+    val longitude: Float,
+    val totalPoints: Int
 )

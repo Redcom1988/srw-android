@@ -22,15 +22,16 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 @SuppressLint("MissingPermission")
-class NetworkHelper(
+open class NetworkHelper(
     private val context: Context,
     private val isDebugBuild: Boolean,
+    private val networkPreference: NetworkPreference
 ) {
 
     private val connectivityManager = context
         .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-    val client: OkHttpClient = run {
+    open val client: OkHttpClient = run {
         val builder = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -44,6 +45,7 @@ class NetworkHelper(
             .addInterceptor(UncaughtExceptionInterceptor())
             .addNetworkInterceptor(IgnoreGzipInterceptor())
             .addNetworkInterceptor(BrotliInterceptor)
+
 
         if (isDebugBuild) {
             val httpLoggingInterceptor = HttpLoggingInterceptor().apply {

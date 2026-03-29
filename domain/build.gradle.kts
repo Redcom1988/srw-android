@@ -48,4 +48,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(project(":core"))
+
+    // Paging 3
+    implementation(libs.androidx.paging.runtime)
 }

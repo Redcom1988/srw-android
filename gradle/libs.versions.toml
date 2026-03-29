@@ -14,6 +14,7 @@ materialMotionComposeCore = "2.0.1"
 ksp = "2.2.10-2.0.2"
 koinBom = "4.1.0"
 coilCompose = "3.3.0"
+coilOkhttp = "3.3.0"
 okhttp_version = "5.1.0"
 okio = "3.16.0"
 serialization_version = "1.9.0"
@@ -27,6 +28,14 @@ materialIcons = "1.7.8"
 chucker = "4.2.0"
 reorderable = "3.0.0"
 uiUnit = "1.9.4"
+camerax = "1.4.1"
+pagingruntime = "3.3.6"
+pagingcompose = "3.4.0-alpha04"
+ui = "1.10.4"
+maps = "4.3.0"
+playServicesMaps = "19.0.0"
+playServicesLocation = "21.3.0"
+accompanist = "0.34.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +63,7 @@ material-icons = { group = "androidx.compose.material", name = "material-icons-e
 material-motion-compose-core = { module = "io.github.fornewid:material-motion-compose-core", version.ref = "materialMotionComposeCore" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
+coil-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilOkhttp" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 
 okhttp-core = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp_version" }
@@ -82,6 +92,20 @@ chucker-release = { module = "com.github.chuckerteam.chucker:library-no-op", ver
 
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 androidx-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
+
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+
+androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "pagingruntime"}
+androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingcompose"}
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
+
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanist" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
