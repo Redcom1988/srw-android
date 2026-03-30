@@ -14,15 +14,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.util.Consumer
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.ScreenTransition
+import com.redcom1988.core.network.AuthEvent
 import com.redcom1988.core.network.NetworkPreference
-import com.redcom1988.srw.screens.homescreen.HomeScreen
-import com.redcom1988.srw.screens.locationpicker.LocationPickerScreen
 import com.redcom1988.srw.screens.loginscreen.LoginScreen
+import com.redcom1988.srw.screens.splashscreen.SplashScreen
 import com.redcom1988.srw.theme.AppTheme
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -36,7 +35,6 @@ class MainActivity : AppCompatActivity() {
     private val networkPreference: NetworkPreference by inject()
 
     private var isReady = false
-    private var initialScreen: Screen = LoginScreen
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,19 +53,28 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        handlePreDraw()
+        isReady = true
 
         enableEdgeToEdge()
         setContent {
             AppTheme {
                 val slideDistance = rememberSlideDistance()
                 Navigator(
-                    screen = initialScreen,
+                    screen = SplashScreen(networkPreference),
                     disposeBehavior = NavigatorDisposeBehavior(
                         disposeNestedNavigators = false,
                         disposeSteps = true,
                     )
                 ) { navigator ->
+                    LaunchedEffect(Unit) {
+                        networkPreference.authEvents.collectLatest { event ->
+                            when (event) {
+                                is AuthEvent.TokenRefreshFailed -> {
+                                    navigator.replaceAll(LoginScreen)
+                                }
+                            }
+                        }
+                    }
                     ScreenTransition(
                         modifier = Modifier.fillMaxSize(),
                         navigator = navigator,
@@ -82,18 +89,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    private fun handlePreDraw() {
-        val accessToken = networkPreference.accessToken().get()
-        val onboardingComplete = networkPreference.onboardingComplete().get()
-        
-        initialScreen = when {
-            accessToken.isEmpty() -> LoginScreen
-            !onboardingComplete -> LocationPickerScreen
-            else -> HomeScreen
-        }
-        isReady = true
     }
 
     @Composable

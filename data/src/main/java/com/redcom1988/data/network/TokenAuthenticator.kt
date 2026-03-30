@@ -1,5 +1,6 @@
 package com.redcom1988.data.network
 
+import com.redcom1988.core.network.AuthEvent
 import com.redcom1988.core.network.NetworkHelper
 import com.redcom1988.core.network.NetworkPreference
 import com.redcom1988.core.network.POST
@@ -9,9 +10,7 @@ import com.redcom1988.core.network.parseAs
 import com.redcom1988.data.remote.model.BaseResponse
 import com.redcom1988.data.remote.model.auth.AuthRequest
 import com.redcom1988.data.remote.model.auth.AuthResponse
-import com.redcom1988.domain.auth.interactor.RefreshToken
 import com.redcom1988.domain.auth.model.AuthToken
-import com.redcom1988.domain.preference.ApplicationPreference
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.MediaType.Companion.toMediaType
@@ -62,7 +61,10 @@ class TokenAuthenticator(
 
                 }
             } catch (_: Exception) {
-                // Exception during refresh, return null to trigger logout
+                // Exception during refresh, emit event and return null
+                runBlocking {
+                    preference.emitAuthEvent(AuthEvent.TokenRefreshFailed)
+                }
                 null
             }
         }

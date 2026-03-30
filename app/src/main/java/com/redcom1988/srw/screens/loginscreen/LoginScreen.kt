@@ -5,6 +5,7 @@ import android.nfc.NfcAdapter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,10 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,8 +38,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.redcom1988.srw.BuildConfig
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,6 +49,8 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.redcom1988.core.util.extractNfcNumber
+import com.redcom1988.srw.BuildConfig
+import com.redcom1988.srw.R
 import com.redcom1988.srw.screens.homescreen.HomeScreen
 import com.redcom1988.srw.screens.locationpicker.LocationPickerScreen
 import kotlinx.coroutines.launch
@@ -156,6 +160,16 @@ private fun LoginScreenContent(
                 .fillMaxSize()
                 .padding(contentPadding)
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.app_logo_alt),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentScale = ContentScale.Fit,
+                alpha = 0.1f
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -163,24 +177,14 @@ private fun LoginScreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // App logo/title
-                Text(
-                    text = "SMART RECYCLE WASTE", // TODO String Resource
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // NFC Card animation/icon
+                // NFC Card with app logo background
                 Card(
-                    modifier = Modifier.size(120.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.size(96.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = MaterialTheme.colorScheme.primary
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -189,29 +193,30 @@ private fun LoginScreenContent(
                         Icon(
                             imageVector = Icons.Default.Nfc,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier = Modifier.size(56.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Instructions
                 when (state) {
                     is LoginScreenModel.LoginState.Idle -> {
                         Text(
-                            text = "Tap Your NFC Card", // TODO String Resource
-                            style = MaterialTheme.typography.headlineSmall,
+                            text = "Tap Your NFC Card",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Hold your NFC card near the back\nof your device to login", // TODO String Resource
-                            style = MaterialTheme.typography.bodyLarge,
+                            text = "Hold your NFC card near the back\nof your device to login",
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -219,25 +224,26 @@ private fun LoginScreenContent(
 
                     is LoginScreenModel.LoginState.Loading -> {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Authenticating...", // TODO String Resource
+                            text = "Authenticating...",
                             style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
 
                     is LoginScreenModel.LoginState.Error,
                     is LoginScreenModel.LoginState.Success,
-                    is LoginScreenModel.LoginState.NeedsOnboarding -> {
-                    }
+                    is LoginScreenModel.LoginState.NeedsOnboarding -> {}
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // NFC status info
                 AnimatedVisibility(
@@ -249,38 +255,55 @@ private fun LoginScreenContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Card(
-                            modifier = Modifier,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            )
+                                containerColor = if (nfcAdapter == null || !nfcAdapter.isEnabled) {
+                                    MaterialTheme.colorScheme.errorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                }
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.widthIn(min = 200.dp)
                         ) {
-                            Column(
+                            Text(
+                                text = if (nfcAdapter == null) {
+                                    "NFC Not Available"
+                                } else if (!nfcAdapter.isEnabled) {
+                                    "Enable NFC in Settings"
+                                } else {
+                                    "NFC Ready"
+                                },
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = if (nfcAdapter == null) {
-                                        "⚠️ NFC Not Available" // TODO String Resource
-                                    } else if (!nfcAdapter.isEnabled) {
-                                        "⚠️ Please Enable NFC in Settings" // TODO String Resource
-                                    } else {
-                                        "✓ NFC Ready" // TODO String Resource
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                                color = if (nfcAdapter == null || !nfcAdapter.isEnabled) {
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                }
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         if (BuildConfig.DEBUG) {
-                            // Debug mock login button
-                            Button(
-                                onClick = { onHandleNfcTag("client") }
+                            Card(
+                                onClick = { onHandleNfcTag("client") },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.widthIn(min = 200.dp)
                             ) {
-                                Text("Mock Login (Debug)")
+                                Text(
+                                    text = "Debug Login",
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(16.dp),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     }
