@@ -38,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.redcom1988.srw.BuildConfig
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -274,11 +275,13 @@ private fun LoginScreenContent(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Debug mock login button
-                        Button(
-                            onClick = { onHandleNfcTag("client") }
-                        ) {
-                            Text("Mock Login (Debug)")
+                        if (BuildConfig.DEBUG) {
+                            // Debug mock login button
+                            Button(
+                                onClick = { onHandleNfcTag("client") }
+                            ) {
+                                Text("Mock Login (Debug)")
+                            }
                         }
                     }
                 }
