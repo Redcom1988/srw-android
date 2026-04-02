@@ -2,9 +2,9 @@ package com.redcom1988.srw.screens.locationpicker
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import com.redcom1988.core.network.NetworkPreference
 import com.redcom1988.core.util.inject
 import com.redcom1988.domain.client.interactor.UpdateAddress
+import com.redcom1988.domain.preference.ApplicationPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class LocationPickerScreenModel(
     private val updateAddress: UpdateAddress = inject(),
-    private val networkPreference: NetworkPreference = inject()
+    private val applicationPreference: ApplicationPreference = inject()
 ) : ScreenModel {
 
     private val _state = MutableStateFlow(LocationState())
@@ -44,7 +44,7 @@ class LocationPickerScreenModel(
                 longitude = currentState.longitude.toFloat()
             )) {
                 is UpdateAddress.Result.Success -> {
-                    networkPreference.onboardingComplete().set(true)
+                    applicationPreference.onboardingComplete().set(true)
                     _state.value = _state.value.copy(
                         isLoading = false,
                         isSuccess = true
@@ -58,6 +58,10 @@ class LocationPickerScreenModel(
                 }
             }
         }
+    }
+
+    fun finishOnBoarding() {
+        applicationPreference.onboardingComplete().set(true)
     }
 
     fun clearError() {

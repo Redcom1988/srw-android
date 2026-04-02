@@ -73,7 +73,7 @@ object LoginScreen : Screen {
                 navigator.replaceAll(HomeScreen)
             },
             onNavigateToOnboarding = {
-                navigator.replaceAll(LocationPickerScreen)
+                navigator.replaceAll(LocationPickerScreen(true))
             }
         )
     }
@@ -289,7 +289,7 @@ private fun LoginScreenContent(
 
                         if (BuildConfig.DEBUG) {
                             Card(
-                                onClick = { onHandleNfcTag("client") },
+                                onClick = { onHandleNfcTag("client3") },
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                                 ),

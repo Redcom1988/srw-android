@@ -31,9 +31,4 @@ class NetworkPreference (
         key = "api_base_url",
         defaultValue = "https://srw-api.achmad.dev"
     )
-
-    fun onboardingComplete() = preferenceStore.getBoolean(
-        key = "onboarding_complete",
-        defaultValue = false
-    )
 }

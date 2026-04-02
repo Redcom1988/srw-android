@@ -6,8 +6,8 @@ data class Client(
     val id: Int,
     val nfc: String,
     val name: String,
-    val address: String,
-    val latitude: Float,
-    val longitude: Float,
+    val address: String = "",
+    val latitude: Float? = null,
+    val longitude: Float? = null,
     val totalPoints: Int
 )

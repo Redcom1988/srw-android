@@ -59,6 +59,8 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.redcom1988.core.util.inject
+import com.redcom1988.domain.preference.ApplicationPreference
 import com.redcom1988.srw.R
 import com.redcom1988.srw.components.AppBar
 import com.redcom1988.srw.components.SubmissionCard
@@ -78,6 +80,7 @@ object HomeScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
         val screenModel = rememberScreenModel { HomeScreenModel() }
+        val applicationPreference: ApplicationPreference = inject()
         val logoutState by screenModel.logoutState.collectAsState()
         val profileState by screenModel.profileState.collectAsState()
         val submissionsState by screenModel.submissionsState.collectAsState()
@@ -132,7 +135,13 @@ object HomeScreen : Screen {
             submissionsState = submissionsState,
             onClickLogout = screenModel::handleLogout,
             onClickViewAll = { navigator.push(SubmissionsScreen) },
-            onClickUpload = { navigator.push(CameraScreen) },
+            onClickUpload = {
+                if (!applicationPreference.onboardingComplete().get()) {
+                    navigator.push(LocationPickerScreen())
+                } else {
+                    navigator.push(CameraScreen)
+                }
+            },
             onRefresh = {
                 screenModel.loadProfile()
                 screenModel.loadRecentSubmissions()
@@ -182,7 +191,7 @@ private fun HomeScreenContent(
                     },
                     modifier = Modifier.clickable {
                         showClientOptionsSheet = false
-                        navigator.push(LocationPickerScreen)
+                        navigator.push(LocationPickerScreen())
                     }
                 )
                 Spacer(modifier = Modifier.height(32.dp))
@@ -283,6 +292,7 @@ private fun HomeScreenContent(
                                 onClick = { showClientOptionsSheet = true },
                                 name = profileState.client.name,
                                 points = profileState.client.totalPoints.toString(),
+                                address = profileState.client.address,
                             )
                         }
                         is HomeScreenModel.ProfileState.Error -> {
@@ -356,7 +366,10 @@ private fun BalanceCard(
     onClick: () -> Unit,
     name: String,
     points: String,
+    address: String,
 ) {
+    val displayAddress = address.ifBlank { "No address set" }
+
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -386,6 +399,14 @@ private fun BalanceCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     letterSpacing = 2.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = displayAddress,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

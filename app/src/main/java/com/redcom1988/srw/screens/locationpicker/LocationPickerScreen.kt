@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,8 +33,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,9 +45,6 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -56,12 +56,15 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.redcom1988.srw.screens.homescreen.HomeScreen
+import com.redcom1988.srw.util.rememberPermissionState
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-object LocationPickerScreen : Screen {
+data class LocationPickerScreen(
+    val fromOnBoarding: Boolean = false
+) : Screen {
     @Suppress("unused")
-    private fun readResolve(): Any = LocationPickerScreen
+    private fun readResolve(): Any = LocationPickerScreen()
 
     @Composable
     override fun Content() {
@@ -74,15 +77,22 @@ object LocationPickerScreen : Screen {
             onLocationSelected = screenModel::updateSelectedLocation,
             onConfirmLocation = screenModel::confirmLocation,
             onClearError = screenModel::clearError,
-            onNavigateBack = { navigator.pop() },
+            onNavigateBack = {
+                if (fromOnBoarding) {
+                    navigator.replaceAll(HomeScreen)
+                } else {
+                    navigator.pop()
+                }
+            },
             onOnboardingComplete = {
+                screenModel::finishOnBoarding
                 navigator.replaceAll(HomeScreen)
             }
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationPickerContent(
     state: LocationPickerScreenModel.LocationState,
@@ -106,6 +116,21 @@ private fun LocationPickerContent(
     }
 
     val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
+    var permissionRequested by remember { mutableStateOf(false) }
+
+    LaunchedEffect(locationPermissionState.isGranted.value) {
+        if (!locationPermissionState.isGranted.value && !permissionRequested) {
+            permissionRequested = true
+            locationPermissionState.requestPermission()
+        }
+    }
+
+    LaunchedEffect(permissionRequested, locationPermissionState.isGranted.value) {
+        if (permissionRequested && !locationPermissionState.isGranted.value) {
+            showPermissionDeniedDialog = true
+        }
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -156,7 +181,7 @@ private fun LocationPickerContent(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(
-                    isMyLocationEnabled = locationPermissionState.status.isGranted
+                    isMyLocationEnabled = locationPermissionState.isGranted.value
                 ),
                 uiSettings = MapUiSettings(
                     zoomControlsEnabled = false,
@@ -178,7 +203,7 @@ private fun LocationPickerContent(
 
             FloatingActionButton(
                 onClick = {
-                    if (locationPermissionState.status.isGranted) {
+                    if (locationPermissionState.isGranted.value) {
                         getCurrentLocation(
                             fusedLocationClient = fusedLocationClient,
                             context = context,
@@ -193,7 +218,7 @@ private fun LocationPickerContent(
                             }
                         )
                     } else {
-                        locationPermissionState.launchPermissionRequest()
+                        locationPermissionState.requestPermission()
                     }
                 },
                 modifier = Modifier
@@ -250,6 +275,24 @@ private fun LocationPickerContent(
                 }
             }
         }
+    }
+
+    if (showPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDeniedDialog = false },
+            title = { Text("Permission Required") },
+            text = { Text("Location permission is required to set your pickup address. Please enable it in Settings.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showPermissionDeniedDialog = false
+                        onNavigateBack()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 
