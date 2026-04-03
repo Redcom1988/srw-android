@@ -24,17 +24,21 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +57,7 @@ import com.redcom1988.srw.BuildConfig
 import com.redcom1988.srw.R
 import com.redcom1988.srw.screens.homescreen.HomeScreen
 import com.redcom1988.srw.screens.locationpicker.LocationPickerScreen
+import com.redcom1988.srw.util.ErrorMessageUtil
 import kotlinx.coroutines.launch
 
 object LoginScreen : Screen {
@@ -72,8 +77,11 @@ object LoginScreen : Screen {
             onLoginSuccess = {
                 navigator.replaceAll(HomeScreen)
             },
-            onNavigateToOnboarding = {
+            onContinueToOnboarding = {
                 navigator.replaceAll(LocationPickerScreen(true))
+            },
+            onSkipOnboarding = {
+                navigator.replaceAll(HomeScreen)
             }
         )
     }
@@ -86,14 +94,15 @@ private fun LoginScreenContent(
     onHandleNfcTag: (String) -> Unit,
     onResetState: () -> Unit,
     onLoginSuccess: () -> Unit,
-    onNavigateToOnboarding: () -> Unit
+    onContinueToOnboarding: () -> Unit,
+    onSkipOnboarding: () -> Unit
 ) {
+    var showWelcomeDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val activity = context as? Activity
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val activity = context as? Activity
+    val scope = rememberCoroutineScope()
 
     DisposableEffect(activity) {
         val nfcListener = NfcAdapter.ReaderCallback { tag ->
@@ -130,19 +139,63 @@ private fun LoginScreenContent(
             is LoginScreenModel.LoginState.Success -> {
                 onLoginSuccess()
             }
+
             is LoginScreenModel.LoginState.NeedsOnboarding -> {
-                onNavigateToOnboarding()
+                showWelcomeDialog = true
             }
+
             is LoginScreenModel.LoginState.Error -> {
                 scope.launch {
-                    snackbarHostState.showSnackbar(state.message)
+                    snackbarHostState.showSnackbar(
+                        ErrorMessageUtil.translate(state.message)
+                    )
                 }
                 onResetState()
             }
+
             else -> {}
         }
     }
 
+    if (showWelcomeDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = {
+                Text(
+                    text = "Welcome to SRW",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Text(
+                    text = "We need your pickup address to process your submissions. You can change this anytime later from the home screen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showWelcomeDialog = false
+                        onContinueToOnboarding()
+                    }
+                ) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showWelcomeDialog = false
+                        onSkipOnboarding()
+                    }
+                ) {
+                    Text("Skip")
+                }
+            }
+        )
+    }
     Scaffold(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
@@ -240,7 +293,8 @@ private fun LoginScreenContent(
 
                     is LoginScreenModel.LoginState.Error,
                     is LoginScreenModel.LoginState.Success,
-                    is LoginScreenModel.LoginState.NeedsOnboarding -> {}
+                    is LoginScreenModel.LoginState.NeedsOnboarding -> {
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

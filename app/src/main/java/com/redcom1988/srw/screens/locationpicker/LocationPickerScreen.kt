@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -33,10 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +43,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -57,6 +56,7 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.redcom1988.srw.screens.homescreen.HomeScreen
 import com.redcom1988.srw.util.rememberPermissionState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -85,7 +85,7 @@ data class LocationPickerScreen(
                 }
             },
             onOnboardingComplete = {
-                screenModel::finishOnBoarding
+                screenModel.finishOnBoarding()
                 navigator.replaceAll(HomeScreen)
             }
         )
@@ -116,20 +116,9 @@ private fun LocationPickerContent(
     }
 
     val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
-    var showPermissionDeniedDialog by remember { mutableStateOf(false) }
-    var permissionRequested by remember { mutableStateOf(false) }
 
-    LaunchedEffect(locationPermissionState.isGranted.value) {
-        if (!locationPermissionState.isGranted.value && !permissionRequested) {
-            permissionRequested = true
-            locationPermissionState.requestPermission()
-        }
-    }
-
-    LaunchedEffect(permissionRequested, locationPermissionState.isGranted.value) {
-        if (permissionRequested && !locationPermissionState.isGranted.value) {
-            showPermissionDeniedDialog = true
-        }
+    LaunchedEffect(Unit) {
+        snackbarHostState.showSnackbar("Tap on the map to select your location")
     }
 
     LaunchedEffect(state.error) {
@@ -142,7 +131,7 @@ private fun LocationPickerContent(
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
             snackbarHostState.showSnackbar("Address updated successfully!")
-            kotlinx.coroutines.delay(500)
+            delay(500)
             onOnboardingComplete()
         }
     }
@@ -152,7 +141,7 @@ private fun LocationPickerContent(
             TopAppBar(
                 title = { Text("Select Location") },
                 navigationIcon = {
-                    androidx.compose.material3.IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -276,24 +265,6 @@ private fun LocationPickerContent(
             }
         }
     }
-
-    if (showPermissionDeniedDialog) {
-        AlertDialog(
-            onDismissRequest = { showPermissionDeniedDialog = false },
-            title = { Text("Permission Required") },
-            text = { Text("Location permission is required to set your pickup address. Please enable it in Settings.") },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        showPermissionDeniedDialog = false
-                        onNavigateBack()
-                    }
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
 }
 
 @Suppress("DEPRECATION")
@@ -316,7 +287,7 @@ private fun getAddressFromLatLng(context: Context, latitude: Double, longitude: 
 
 @Suppress("DEPRECATION")
 private fun getCurrentLocation(
-    fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
+    fusedLocationClient: FusedLocationProviderClient,
     context: Context,
     onLocationReceived: (LatLng) -> Unit
 ) {
