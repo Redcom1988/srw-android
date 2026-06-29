@@ -60,4 +60,6 @@ dependencies {
 
     debugImplementation(libs.chucker)
     releaseImplementation(libs.chucker.release)
+
+    implementation(libs.security.crypto)
 }

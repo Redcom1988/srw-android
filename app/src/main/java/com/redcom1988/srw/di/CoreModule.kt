@@ -1,10 +1,9 @@
 package com.redcom1988.srw.di
 
-import android.content.Context
 import com.redcom1988.core.network.NetworkHelper
 import com.redcom1988.core.network.NetworkPreference
-import com.redcom1988.core.preference.AndroidPreferenceStore
 import com.redcom1988.core.preference.PreferenceStore
+import com.redcom1988.core.preference.createEncryptedPreferenceStore
 import com.redcom1988.core.util.ToastHelper
 import com.redcom1988.data.network.DataNetworkHelper
 import org.koin.android.ext.koin.androidContext
@@ -34,9 +33,7 @@ val coreModule = module {
     single { NetworkPreference(get()) }
 
     single<PreferenceStore> {
-        AndroidPreferenceStore(
-            androidContext().getSharedPreferences("app_pref", Context.MODE_PRIVATE)
-        )
+        createEncryptedPreferenceStore(androidContext())
     }
 
 }

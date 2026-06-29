@@ -2,10 +2,10 @@ package com.redcom1988.srw.screens.loginscreen
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import com.redcom1988.core.network.NetworkPreference
 import com.redcom1988.core.util.inject
 import com.redcom1988.domain.auth.interactor.Login
 import com.redcom1988.domain.client.interactor.GetClientProfile
+import com.redcom1988.domain.preference.ApplicationPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 class LoginScreenModel(
     private val login: Login = inject(),
     private val getClientProfile: GetClientProfile = inject(),
-    private val networkPreference: NetworkPreference = inject()
+    private val applicationPreference: ApplicationPreference = inject()
 ) : ScreenModel {
 
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
@@ -41,8 +41,10 @@ class LoginScreenModel(
             when (val result = getClientProfile.await()) {
                 is GetClientProfile.Result.Success -> {
                     val client = result.client
-                    val hasAddress = client.address.isNotBlank() && (client.latitude != 0f || client.longitude != 0f)
-                    networkPreference.onboardingComplete().set(hasAddress)
+                    val hasAddress = client.address.isEmpty() &&
+                        client.latitude != null && client.latitude != 0f &&
+                        client.longitude != null && client.longitude != 0f
+                    applicationPreference.onboardingComplete().set(hasAddress)
                     
                     if (hasAddress) {
                         _state.value = LoginState.Success

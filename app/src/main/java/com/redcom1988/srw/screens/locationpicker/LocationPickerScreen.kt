@@ -21,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -42,9 +43,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -56,12 +55,16 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.redcom1988.srw.screens.homescreen.HomeScreen
+import com.redcom1988.srw.util.rememberPermissionState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-object LocationPickerScreen : Screen {
+data class LocationPickerScreen(
+    val fromOnBoarding: Boolean = false
+) : Screen {
     @Suppress("unused")
-    private fun readResolve(): Any = LocationPickerScreen
+    private fun readResolve(): Any = LocationPickerScreen()
 
     @Composable
     override fun Content() {
@@ -74,15 +77,22 @@ object LocationPickerScreen : Screen {
             onLocationSelected = screenModel::updateSelectedLocation,
             onConfirmLocation = screenModel::confirmLocation,
             onClearError = screenModel::clearError,
-            onNavigateBack = { navigator.pop() },
+            onNavigateBack = {
+                if (fromOnBoarding) {
+                    navigator.replaceAll(HomeScreen)
+                } else {
+                    navigator.pop()
+                }
+            },
             onOnboardingComplete = {
+                screenModel.finishOnBoarding()
                 navigator.replaceAll(HomeScreen)
             }
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationPickerContent(
     state: LocationPickerScreenModel.LocationState,
@@ -107,6 +117,10 @@ private fun LocationPickerContent(
 
     val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
+    LaunchedEffect(Unit) {
+        snackbarHostState.showSnackbar("Tap on the map to select your location")
+    }
+
     LaunchedEffect(state.error) {
         state.error?.let {
             snackbarHostState.showSnackbar(it)
@@ -117,7 +131,7 @@ private fun LocationPickerContent(
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
             snackbarHostState.showSnackbar("Address updated successfully!")
-            kotlinx.coroutines.delay(500)
+            delay(500)
             onOnboardingComplete()
         }
     }
@@ -127,7 +141,7 @@ private fun LocationPickerContent(
             TopAppBar(
                 title = { Text("Select Location") },
                 navigationIcon = {
-                    androidx.compose.material3.IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -156,7 +170,7 @@ private fun LocationPickerContent(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(
-                    isMyLocationEnabled = locationPermissionState.status.isGranted
+                    isMyLocationEnabled = locationPermissionState.isGranted.value
                 ),
                 uiSettings = MapUiSettings(
                     zoomControlsEnabled = false,
@@ -178,7 +192,7 @@ private fun LocationPickerContent(
 
             FloatingActionButton(
                 onClick = {
-                    if (locationPermissionState.status.isGranted) {
+                    if (locationPermissionState.isGranted.value) {
                         getCurrentLocation(
                             fusedLocationClient = fusedLocationClient,
                             context = context,
@@ -193,7 +207,7 @@ private fun LocationPickerContent(
                             }
                         )
                     } else {
-                        locationPermissionState.launchPermissionRequest()
+                        locationPermissionState.requestPermission()
                     }
                 },
                 modifier = Modifier
@@ -273,7 +287,7 @@ private fun getAddressFromLatLng(context: Context, latitude: Double, longitude: 
 
 @Suppress("DEPRECATION")
 private fun getCurrentLocation(
-    fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
+    fusedLocationClient: FusedLocationProviderClient,
     context: Context,
     onLocationReceived: (LatLng) -> Unit
 ) {
