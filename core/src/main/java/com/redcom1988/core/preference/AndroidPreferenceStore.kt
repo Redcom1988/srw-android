@@ -1,6 +1,9 @@
 package com.redcom1988.core.preference
 
+import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.redcom1988.core.preference.AndroidPreference.BooleanPrimitive
 import com.redcom1988.core.preference.AndroidPreference.FloatPrimitive
 import com.redcom1988.core.preference.AndroidPreference.IntPrimitive
@@ -13,32 +16,37 @@ import kotlinx.coroutines.flow.callbackFlow
 
 class AndroidPreferenceStore(
     private val sharedPreferences: SharedPreferences,
+    private val encryptedSharedPreferences: SharedPreferences,
 ) : PreferenceStore {
 
-    private val keyFlow = sharedPreferences.keyFlow
+    private fun prefs(key: String) =
+        if (Preference.isPrivate(key)) encryptedSharedPreferences else sharedPreferences
+
+    private fun keyFlow(key: String) =
+        if (Preference.isPrivate(key)) encryptedSharedPreferences.keyFlow else sharedPreferences.keyFlow
 
     override fun getString(key: String, defaultValue: String): Preference<String> {
-        return StringPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+        return StringPrimitive(prefs(key), keyFlow(key), key, defaultValue)
     }
 
     override fun getLong(key: String, defaultValue: Long): Preference<Long> {
-        return LongPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+        return LongPrimitive(prefs(key), keyFlow(key), key, defaultValue)
     }
 
     override fun getInt(key: String, defaultValue: Int): Preference<Int> {
-        return IntPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+        return IntPrimitive(prefs(key), keyFlow(key), key, defaultValue)
     }
 
     override fun getFloat(key: String, defaultValue: Float): Preference<Float> {
-        return FloatPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+        return FloatPrimitive(prefs(key), keyFlow(key), key, defaultValue)
     }
 
     override fun getBoolean(key: String, defaultValue: Boolean): Preference<Boolean> {
-        return BooleanPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+        return BooleanPrimitive(prefs(key), keyFlow(key), key, defaultValue)
     }
 
     override fun getStringSet(key: String, defaultValue: Set<String>): Preference<Set<String>> {
-        return StringSetPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+        return StringSetPrimitive(prefs(key), keyFlow(key), key, defaultValue)
     }
 
     override fun <T> getObject(
@@ -48,8 +56,8 @@ class AndroidPreferenceStore(
         deserializer: (String) -> T,
     ): Preference<T> {
         return Object(
-            preferences = sharedPreferences,
-            keyFlow = keyFlow,
+            preferences = prefs(key),
+            keyFlow = keyFlow(key),
             key = key,
             defaultValue = defaultValue,
             serializer = serializer,
@@ -58,8 +66,28 @@ class AndroidPreferenceStore(
     }
 
     override fun getAll(): Map<String, *> {
-        return sharedPreferences.all ?: emptyMap<String, Any>()
+        val result = linkedMapOf<String, Any?>()
+        sharedPreferences.all?.let { result.putAll(it) }
+        try {
+            encryptedSharedPreferences.all?.let { result.putAll(it) }
+        } catch (_: UnsupportedOperationException) { }
+        return result
     }
+}
+
+fun createEncryptedPreferenceStore(context: Context): AndroidPreferenceStore {
+    return AndroidPreferenceStore(
+        sharedPreferences = context.getSharedPreferences("app_pref", Context.MODE_PRIVATE),
+        encryptedSharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "app_pref_encrypted",
+            MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build(),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    )
 }
 
 private val SharedPreferences.keyFlow
